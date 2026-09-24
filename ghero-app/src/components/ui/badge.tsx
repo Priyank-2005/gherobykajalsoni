@@ -9,11 +9,11 @@ export function Badge({ className, variant = 'new', ...props }: BadgeProps) {
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] uppercase tracking-wider font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-wine focus:ring-offset-2 font-body",
+        "inline-flex items-center rounded-full px-1.5 md:px-2.5 py-0.5 text-[9px] md:text-[10px] uppercase tracking-wider font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2 font-body whitespace-nowrap",
         {
           "bg-wine text-white": variant === 'discount',
           "bg-gold text-white": variant === 'new',
-          "bg-rose text-white": variant === 'bestseller',
+          "bg-gold-dark text-white": variant === 'bestseller',
         },
         className
       )}

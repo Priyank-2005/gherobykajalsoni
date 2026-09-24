@@ -14,7 +14,7 @@ export function PriceDisplay({ salePrice, mrp, className }: PriceDisplayProps) {
   const hasDiscount = discount > 0;
 
   return (
-    <div className={cn("flex items-center gap-2 font-body", className)}>
+    <div className={cn("flex flex-wrap items-center gap-x-1.5 gap-y-1 font-body", className)}>
       <span className="text-lg font-semibold text-wine">
         {formatPrice(salePrice)}
       </span>
