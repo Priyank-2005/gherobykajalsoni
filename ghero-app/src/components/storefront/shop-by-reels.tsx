@@ -7,7 +7,7 @@ import { DUMMY_REELS } from "@/lib/dummy-data";
 
 export default function ShopByReels() {
   return (
-    <section className="py-16 md:py-24 bg-baby-pink overflow-hidden">
+    <section className="py-16 md:py-24 border-t border-baby-pink-deep/50 overflow-hidden">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col items-center mb-12">
           <h2 className="font-heading text-3xl md:text-4xl text-gold mb-2 text-center flex items-center gap-3">

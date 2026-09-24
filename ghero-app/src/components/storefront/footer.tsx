@@ -4,7 +4,7 @@ import { ExternalLink, Heart, Mail, Phone } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-baby-pink pt-16 pb-8 font-body">
+    <footer className="border-t border-baby-pink-deep/50 pt-16 pb-8 font-body">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8 lg:gap-12 mb-12">
           

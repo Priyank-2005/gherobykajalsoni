@@ -6,7 +6,7 @@ export default function NewArrivals() {
   const newArrivals = DUMMY_PRODUCTS.filter(p => p.isNewArrival).slice(0, 4);
 
   return (
-    <section className="py-16 md:py-24 bg-baby-pink-light">
+    <section className="py-16 md:py-24 border-t border-baby-pink-deep/50">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col items-center mb-12">
           <h2 className="font-heading text-3xl md:text-4xl text-gold mb-2 text-center">New Arrivals</h2>

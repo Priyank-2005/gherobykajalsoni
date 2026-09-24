@@ -87,7 +87,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="relative aspect-[3/4] w-full bg-cream rounded-sm overflow-hidden group"
+            className="relative aspect-[3/4] w-full bg-baby-pink rounded-sm overflow-hidden group"
           >
             <Image
               src={product.images[0]}

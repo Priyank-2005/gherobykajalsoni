@@ -41,7 +41,7 @@ export function Header() {
       {/* Main header — baby pink bg with gold text */}
       <header
         className={cn(
-          "sticky top-0 z-50 w-full transition-all duration-300 font-body bg-baby-pink/95 backdrop-blur-md",
+          "sticky top-0 z-50 w-full transition-all duration-300 font-body bg-baby-pink-light/95 backdrop-blur-md",
           isScrolled ? "shadow-sm py-3" : "py-5"
         )}
       >
@@ -142,7 +142,7 @@ export function Header() {
                   ))}
                 </nav>
               </div>
-              <div className="p-5 border-t border-gold/20 bg-baby-pink">
+              <div className="p-5 border-t border-gold/20">
                 <Link href="/account" className="flex items-center gap-3 text-gold font-medium hover:text-wine">
                   <User className="w-5 h-5" />
                   My Account

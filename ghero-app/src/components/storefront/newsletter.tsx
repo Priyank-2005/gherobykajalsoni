@@ -1,6 +1,6 @@
 export default function Newsletter() {
   return (
-    <section className="py-16 md:py-20 bg-baby-pink-deep/40">
+    <section className="py-16 md:py-20 border-t border-baby-pink-deep/50">
       <div className="container mx-auto px-4 max-w-4xl text-center">
         <h2 className="font-heading text-3xl text-gold mb-4">Stay in Touch</h2>
         <p className="text-charcoal/60 mb-8 font-body">
