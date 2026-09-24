@@ -1,0 +1,34 @@
+import Link from "next/link";
+import { ProductCard } from "@/components/storefront/product-card";
+import { DUMMY_PRODUCTS } from "@/lib/dummy-data";
+
+export default function Bestsellers() {
+  const bestsellers = DUMMY_PRODUCTS.filter(p => p.isBestseller).slice(0, 4);
+
+  return (
+    <section className="py-16 md:py-24 bg-baby-pink">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="flex flex-col items-center mb-12">
+          <h2 className="font-heading text-3xl md:text-4xl text-gold mb-2 text-center">Bestsellers</h2>
+          <div className="w-16 h-0.5 bg-gold mb-4"></div>
+          <p className="text-charcoal/60 text-center font-body">Our most loved pieces</p>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+          {bestsellers.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+        
+        <div className="mt-12 flex justify-center">
+          <Link 
+            href="/shop" 
+            className="text-gold border-b border-gold pb-1 hover:text-wine hover:border-wine transition-colors"
+          >
+            View All Bestsellers
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}

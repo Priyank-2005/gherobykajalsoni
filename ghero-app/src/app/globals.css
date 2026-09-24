@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+/* ============================================
+   Ghero — Premium Traditional Fashion Palette
+   Baby Pink Background + Gold/White Typography
+   ============================================ */
+
+:root {
+  /* Primary palette */
+  --color-baby-pink: #FDE8EF;
+  --color-baby-pink-light: #FFF0F5;
+  --color-baby-pink-deep: #F8D0DD;
+  --color-ivory: #FAF8F5;
+  --color-cream: #FDE8EF;
+  --color-blush: #F8D0DD;
+  --color-rose: #D4A89A;
+  --color-muted-rose: #C48B7C;
+  --color-wine: #722F37;
+  --color-gold: #C5A55A;
+  --color-gold-light: #E8D5A3;
+  --color-gold-dark: #A88B3D;
+
+  /* Neutrals */
+  --color-charcoal: #2C2C2C;
+  --color-dark: #1A1A1A;
+  --color-gray-900: #333333;
+  --color-gray-700: #555555;
+  --color-gray-500: #888888;
+  --color-gray-300: #CCCCCC;
+  --color-gray-100: #F0F0F0;
+
+  /* Semantic */
+  --background: var(--color-baby-pink-light);
+  --foreground: var(--color-charcoal);
+  --primary: var(--color-wine);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--color-rose);
+  --accent: var(--color-gold);
+  --muted: var(--color-baby-pink);
+  --border: var(--color-baby-pink-deep);
+  --ring: var(--color-gold);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  /* Brand colors */
+  --color-ivory: var(--color-ivory);
+  --color-cream: var(--color-cream);
+  --color-blush: var(--color-blush);
+  --color-rose: var(--color-rose);
+  --color-muted-rose: var(--color-muted-rose);
+  --color-wine: var(--color-wine);
+  --color-gold: var(--color-gold);
+  --color-gold-light: var(--color-gold-light);
+  --color-gold-dark: var(--color-gold-dark);
+  --color-charcoal: var(--color-charcoal);
+  --color-baby-pink: var(--color-baby-pink);
+  --color-baby-pink-light: var(--color-baby-pink-light);
+  --color-baby-pink-deep: var(--color-baby-pink-deep);
+
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-inter);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Heading font */
+h1, h2, h3, h4 {
+  font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+}
+
+/* ============================================
+   Smooth scrolling
+   ============================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ============================================
+   Selection color
+   ============================================ */
+
+::selection {
+  background-color: var(--color-gold-light);
+  color: var(--color-dark);
+}
+
+/* ============================================
+   Focus styles (accessibility)
+   ============================================ */
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Scrollbar styling (Webkit)
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-baby-pink);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-baby-pink-deep);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
