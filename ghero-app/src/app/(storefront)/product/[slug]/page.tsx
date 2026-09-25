@@ -121,11 +121,11 @@ export default async function ProductDetailPage({ params }: Props) {
       />
 
       <div className="flex flex-col lg:flex-row gap-10 lg:gap-16">
-        <div className="w-full lg:w-1/2">
+        <div className="w-full lg:w-[45%]">
           <ProductGallery name={product.name} images={product.images} videos={product.videos} />
         </div>
 
-        <div className="w-full lg:w-1/2 flex flex-col">
+        <div className="w-full lg:w-[55%] flex flex-col">
           <Link
             href={
               product.subcategory
