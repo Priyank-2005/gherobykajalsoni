@@ -153,7 +153,10 @@ On capture, in one transaction: order → `PAID`; stock deducted atomically (nev
 
 ## Admin (role `ADMIN`)
 
-All routes are wrapped by `adminRoute()` (401 if signed out, 403 if not admin).
+### POST `/api/admin/auth/login`
+Body `{ email, password }` → `{ user }` and sets the session cookie. Admin accounts only; the same "Incorrect email or password" error for every failure; 10 attempts per 15 min per IP and per email. Admin accounts cannot use the email-OTP endpoints (`400 ADMIN_ACCOUNT`). The password is set from `ADMIN_PASSWORD` by `npm run db:seed` (bcrypt, cost 12).
+
+All other admin routes are wrapped by `adminRoute()` (401 if signed out, 403 if not admin).
 
 | Method | Path | Purpose |
 | --- | --- | --- |

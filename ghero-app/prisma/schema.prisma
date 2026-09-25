@@ -55,13 +55,15 @@ enum CouponApplyOn {
 // ============================================
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  phone     String?
-  role      Role     @default(CUSTOMER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  phone        String?
+  role         Role     @default(CUSTOMER)
+  // bcrypt hash; only set for ADMIN accounts (admins sign in with email + password, not OTP)
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   sessions     Session[]
   addresses    Address[]

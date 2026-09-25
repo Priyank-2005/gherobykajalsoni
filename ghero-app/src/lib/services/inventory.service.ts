@@ -1,8 +1,7 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { prisma, type Db, type Tx } from "@/lib/db";
 import { conflict } from "@/lib/api";
 
-type Db = Prisma.TransactionClient | typeof prisma;
 
 export type StockIssue = "UNAVAILABLE" | "OUT_OF_STOCK" | "INSUFFICIENT_STOCK";
 
@@ -23,7 +22,7 @@ export function stockIssue(
  * All-or-nothing: if any line can't be fulfilled this throws AppError(409) and the caller
  * rolls back (transaction or savepoint). Must run inside a transaction.
  */
-export async function commitStockForOrder(tx: Prisma.TransactionClient, orderId: string) {
+export async function commitStockForOrder(tx: Tx, orderId: string) {
   const items = await tx.orderItem.findMany({ where: { orderId }, select: { variantId: true, quantity: true, sku: true } });
   const missing = items.find((i) => !i.variantId);
   if (missing) throw conflict(`${missing.sku} is no longer available`, "STOCK_CONFLICT");
@@ -59,4 +58,15 @@ export async function restoreStockForOrder(db: Db, orderId: string) {
 
 export async function lowStockCount(threshold = 3) {
   return prisma.productVariant.count({ where: { stock: { lte: threshold }, isAvailable: true } });
+}
+
+/** Variants at or below the threshold, lowest first (for the admin dashboard alert). */
+export async function lowStockVariants(threshold = 3, take = 8) {
+  const rows = await prisma.productVariant.findMany({
+    where: { stock: { lte: threshold }, isAvailable: true },
+    orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
+    take,
+    select: { id: true, sku: true, size: true, color: true, stock: true, product: { select: { id: true, name: true } } },
+  });
+  return rows;
 }

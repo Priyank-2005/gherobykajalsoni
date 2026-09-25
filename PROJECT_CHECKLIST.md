@@ -288,76 +288,76 @@
 ## Phase 9: Admin Panel
 
 ### Admin Authentication
-- [ ] Admin login
-- [ ] Admin session
-- [ ] Admin middleware (server-side role check)
-- [ ] Admin layout (sidebar, header)
+- [x] Admin login (email + password; OTP disabled for admin accounts)
+- [x] Admin session
+- [x] Admin middleware (server-side role check)
+- [x] Admin layout (sidebar, header)
 
 ### Dashboard
-- [ ] Total orders metric
-- [ ] Total revenue metric
-- [ ] Paid/Pending/Shipped/Delivered order counts
-- [ ] Customer count
-- [ ] Product count
-- [ ] Low-stock alerts
-- [ ] Recent orders table
-- [ ] Recent customers table
+- [x] Total orders metric
+- [x] Total revenue metric
+- [x] Paid/Pending/Shipped/Delivered order counts
+- [x] Customer count
+- [x] Product count
+- [x] Low-stock alerts
+- [x] Recent orders table
+- [x] Recent customers table
 
 ### Product Management
-- [ ] Product list (with search, filter, pagination)
-- [ ] Create product form
-- [ ] Edit product form
-- [ ] Delete/archive product
-- [ ] Image upload (Cloudinary)
-- [ ] Video upload (Cloudinary)
-- [ ] Variant management (size, color, SKU, inventory)
-- [ ] Price/MRP setting
-- [ ] Category assignment
-- [ ] Subcategory assignment (dropdown filtered by chosen category; optional; server verifies it belongs to the category)
-- [ ] Description/fabric/care
-- [ ] Bestseller/New Arrival flags
-- [ ] Publish/Unpublish toggle
+- [x] Product list (with search, filter, pagination)
+- [x] Create product form
+- [x] Edit product form
+- [x] Delete/archive product
+- [x] Image upload (Cloudinary)
+- [x] Video upload (Cloudinary)
+- [x] Variant management (size, color, SKU, inventory)
+- [x] Price/MRP setting
+- [x] Category assignment
+- [x] Subcategory assignment (dropdown filtered by chosen category; optional; server verifies it belongs to the category)
+- [x] Description/fabric/care
+- [x] Bestseller/New Arrival flags
+- [x] Publish/Unpublish toggle
 
 ### Order Management
-- [ ] Order list (with search, filter, sort)
-- [ ] Order detail view
-- [ ] Change order status
-- [ ] Tracking URL input (mandatory for SHIPPED)
-- [ ] Tracking URL validation
-- [ ] Print invoice
-- [ ] Invoice template (print stylesheet)
+- [x] Order list (with search, filter, sort)
+- [x] Order detail view
+- [x] Change order status
+- [x] Tracking URL input (mandatory for SHIPPED)
+- [x] Tracking URL validation
+- [x] Print invoice
+- [x] Invoice template (print stylesheet)
 
 ### Customer Management
-- [ ] Customer list (name, email, phone, orders, spending)
-- [ ] Customer detail view
-- [ ] Customer order history
-- [ ] Customer profile info
+- [x] Customer list (name, email, phone, orders, spending)
+- [x] Customer detail view
+- [x] Customer order history
+- [x] Customer profile info
 
 ### Coupon Management
-- [ ] Coupon list
-- [ ] Create coupon form
-- [ ] Edit coupon
-- [ ] Delete/deactivate coupon
-- [ ] Coupon fields: code, type, apply-on, usage limit, per-user limit, start/expiry, min cart, max discount, active/inactive
+- [x] Coupon list
+- [x] Create coupon form
+- [x] Edit coupon
+- [x] Delete/deactivate coupon
+- [x] Coupon fields: code, type, apply-on, usage limit, per-user limit, start/expiry, min cart, max discount, active/inactive
 
 ### Category Management
-- [ ] Category list
-- [ ] Create category
-- [ ] Edit category
-- [ ] Delete category
-- [ ] Category image upload
-- [ ] Category slug management
-- [ ] Add / edit / reorder / hide / delete subcategories inside the category form
-- [ ] Seed client's category + subcategory list
+- [x] Category list
+- [x] Create category
+- [x] Edit category
+- [x] Delete category
+- [x] Category image upload
+- [x] Category slug management
+- [x] Add / edit / reorder / hide / delete subcategories inside the category form
+- [x] Seed client's category + subcategory list
 
 ## Phase 10: Homepage CMS
-- [ ] Hero management (image, mobile image, heading, subheading, CTAs, visibility)
-- [ ] New Arrivals config (auto/manual, count)
-- [ ] Bestsellers config (auto/manual, count)
-- [ ] Categories display management (image, name, link, order, visibility)
-- [ ] Reels management (video/image, caption, product association, order, visibility)
-- [ ] Testimonials management (name, review, rating, image, visibility)
-- [ ] Homepage API to serve all CMS content
+- [x] Hero management (image, mobile image, heading, subheading, CTAs, visibility)
+- [ ] New Arrivals config (auto/manual, count) *(currently manual via the New Arrival / Bestseller flags on each product)*
+- [ ] Bestsellers config (auto/manual, count) *(currently manual via the New Arrival / Bestseller flags on each product)*
+- [x] Categories display management (image, name, link, order, visibility)
+- [x] Reels management (video/image, caption, product association, order, visibility)
+- [x] Testimonials management (name, review, rating, image, visibility)
+- [x] Homepage API to serve all CMS content
 
 ## Phase 11: Coupons
 - [ ] Coupon model and migration

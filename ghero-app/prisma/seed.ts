@@ -3,6 +3,7 @@
  * Upserts by natural keys (slug / sku / code / email), so re-running updates rather than duplicates.
  */
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import {
   DUMMY_CATEGORIES,
   DUMMY_PRODUCTS,
@@ -150,16 +151,25 @@ async function seedCoupons() {
   }
 }
 
+/**
+ * Admin account: email + bcrypt(ADMIN_PASSWORD). Re-running the seed after changing
+ * ADMIN_PASSWORD in .env rotates the password.
+ */
 async function seedAdmin() {
   const email = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+  const password = process.env.ADMIN_PASSWORD;
   if (!email) {
     console.warn("ADMIN_EMAIL not set; skipping admin user.");
     return;
   }
+  if (!password || password.length < 12) {
+    throw new Error("ADMIN_PASSWORD must be set in .env and be at least 12 characters.");
+  }
+  const passwordHash = await bcrypt.hash(password, 12);
   await prisma.user.upsert({
     where: { email },
-    update: { role: "ADMIN" },
-    create: { email, name: "Admin", role: "ADMIN" },
+    update: { role: "ADMIN", passwordHash },
+    create: { email, name: "Kajal Soni", role: "ADMIN", passwordHash },
   });
 }
 

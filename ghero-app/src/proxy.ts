@@ -8,8 +8,9 @@ const ORIGIN_EXEMPT = ["/api/payment/webhook"];
 
 /**
  * Runs before routes. Two cheap, optimistic checks:
- * 1. Protected pages without a session cookie redirect to /login?next=... (the real
- *    session/role check happens in the page layouts and API handlers).
+ * 1. Protected pages without a session cookie redirect to their sign-in page
+ *    (/admin/login for the admin panel, /login for accounts). The real session/role
+ *    check happens in the page layouts and API handlers.
  * 2. CSRF defence in depth: mutating /api requests from a browser must come from our origin.
  */
 export function proxy(request: NextRequest) {
@@ -25,7 +26,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (PROTECTED_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+  if (isAdminPage && pathname !== "/admin/login" && !request.cookies.has(SESSION_COOKIE_NAME)) {
+    const login = new URL("/admin/login", request.url);
+    login.searchParams.set("next", `${pathname}${search}`);
+    return NextResponse.redirect(login);
+  }
+
+  if (!isAdminPage && PROTECTED_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     if (!request.cookies.has(SESSION_COOKIE_NAME)) {
       const login = new URL("/login", request.url);
       login.searchParams.set("next", `${pathname}${search}`);

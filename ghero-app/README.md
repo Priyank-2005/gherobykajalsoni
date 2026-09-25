@@ -60,7 +60,9 @@ npm run db:migrate
 npm run db:seed
 ```
 
-To sign in as admin, go to `/login` with the `ADMIN_EMAIL` address. Until SMTP is configured, one-time codes are printed in the dev-server console instead of being emailed.
+**Admin panel:** open `/admin` and sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env` (email + password, no OTP). To change the password, edit `ADMIN_PASSWORD` (12+ characters) and run `npm run db:seed` again.
+
+Customers sign in with a one-time email code. Until SMTP is configured, codes are printed in the dev-server console instead of being emailed.
 
 ### 5. Start the development server
 

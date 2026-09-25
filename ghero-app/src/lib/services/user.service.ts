@@ -39,6 +39,8 @@ export async function requestEmailChange(userId: string, newEmail: string) {
   const taken = await prisma.user.findUnique({ where: { email: newEmail }, select: { id: true } });
   if (taken && taken.id !== userId) throw conflict("That email is already linked to another account");
   if (taken) throw conflict("That's already your email address");
+  const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (me?.role === "ADMIN") throw conflict("Admin email is changed in the server configuration (ADMIN_EMAIL)");
   return sendOtp(newEmail);
 }
 
