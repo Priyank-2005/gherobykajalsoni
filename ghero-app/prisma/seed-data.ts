@@ -1,15 +1,60 @@
 /**
- * Dummy data for the storefront UI.
- * This will be replaced with database queries once PostgreSQL is connected.
+ * Initial catalog + homepage content, loaded by prisma/seed.ts.
+ * Images point at /public placeholders until the client's Cloudinary media is uploaded.
  */
 
+const sub = (id: string, name: string, slug: string) => ({ id, name, slug });
+
+// Placeholder images reuse existing assets until the client shares category photography.
 export const DUMMY_CATEGORIES = [
-  { id: "cat-1", name: "Sarees", slug: "sarees", image: "/images/categories/sarees.jpg", productCount: 24 },
-  { id: "cat-2", name: "Lehengas", slug: "lehengas", image: "/images/categories/lehengas.jpg", productCount: 18 },
-  { id: "cat-3", name: "Kurtis", slug: "kurtis", image: "/images/categories/kurtis.jpg", productCount: 32 },
-  { id: "cat-4", name: "Anarkalis", slug: "anarkalis", image: "/images/categories/anarkalis.jpg", productCount: 15 },
-  { id: "cat-5", name: "Suits", slug: "suits", image: "/images/categories/suits.jpg", productCount: 21 },
-  { id: "cat-6", name: "Dupattas", slug: "dupattas", image: "/images/categories/dupattas.jpg", productCount: 12 },
+  {
+    id: "cat-1", name: "Sarees", slug: "sarees", image: "/images/categories/sarees.jpg", productCount: 24,
+    subcategories: [
+      sub("sub-1-1", "Gaji Silk", "gaji-silk"),
+      sub("sub-1-2", "Banarasi", "banarasi"),
+      sub("sub-1-3", "Bandhej", "bandhej"),
+      sub("sub-1-4", "Organza", "organza"),
+      sub("sub-1-5", "Designer Sarees", "designer-sarees"),
+    ],
+  },
+  {
+    id: "cat-2", name: "Suits", slug: "suits", image: "/images/categories/suits.jpg", productCount: 21,
+    subcategories: [
+      sub("sub-2-1", "3-Piece Suits", "3-piece-suits"),
+      sub("sub-2-2", "Anarkali", "anarkali"),
+      sub("sub-2-3", "Designer Suits", "designer-suits"),
+      sub("sub-2-4", "Festive Suits", "festive-suits"),
+    ],
+  },
+  {
+    id: "cat-3", name: "Lehengas", slug: "lehengas", image: "/images/categories/lehengas.jpg", productCount: 18,
+    subcategories: [
+      sub("sub-3-1", "Bridal Lehengas", "bridal-lehengas"),
+      sub("sub-3-2", "Designer Lehengas", "designer-lehengas"),
+      sub("sub-3-3", "Sider Lehengas", "sider-lehengas"),
+    ],
+  },
+  {
+    id: "cat-4", name: "Dresses / Custom Outfits", slug: "dresses-custom-outfits", image: "/images/categories/kurtis.jpg", productCount: 12,
+    subcategories: [],
+  },
+  {
+    id: "cat-5", name: "Jewellery", slug: "jewellery", image: "/images/categories/dupattas.jpg", productCount: 30,
+    subcategories: [
+      sub("sub-5-1", "Imitation Jewellery", "imitation-jewellery"),
+      sub("sub-5-2", "One-Gram Jewellery", "one-gram-jewellery"),
+      sub("sub-5-3", "Two-Gram Jewellery", "two-gram-jewellery"),
+      sub("sub-5-4", "Rental Jewellery", "rental-jewellery"),
+    ],
+  },
+  {
+    id: "cat-6", name: "Bridal & Wedding", slug: "bridal-wedding", image: "/images/categories/anarkalis.jpg", productCount: 15,
+    subcategories: [
+      sub("sub-6-1", "Bridal Outfits", "bridal-outfits"),
+      sub("sub-6-2", "Bridal Jewellery", "bridal-jewellery"),
+      sub("sub-6-3", "Wedding Accessories", "wedding-accessories"),
+    ],
+  },
 ];
 
 export const DUMMY_PRODUCTS = [
@@ -21,6 +66,7 @@ export const DUMMY_PRODUCTS = [
     fabric: "Pure Banarasi Silk",
     careInstructions: "Dry clean only. Store in muslin cloth.",
     category: { id: "cat-1", name: "Sarees", slug: "sarees" },
+    subcategory: { id: "sub-1-2", name: "Banarasi", slug: "banarasi" },
     basePrice: 8999,
     baseMrp: 14999,
     images: ["/images/products/saree-red.jpg"],
@@ -37,7 +83,8 @@ export const DUMMY_PRODUCTS = [
     description: "An exquisite blush pink bridal lehenga with heavy gold and silver embroidery. This stunning piece features intricate zardozi work and comes with a matching choli and dupatta.",
     fabric: "Silk Organza with Net Dupatta",
     careInstructions: "Dry clean only. Handle with care.",
-    category: { id: "cat-2", name: "Lehengas", slug: "lehengas" },
+    category: { id: "cat-3", name: "Lehengas", slug: "lehengas" },
+    subcategory: { id: "sub-3-1", name: "Bridal Lehengas", slug: "bridal-lehengas" },
     basePrice: 24999,
     baseMrp: 39999,
     images: ["/images/products/lehenga-pink.jpg"],
@@ -56,7 +103,8 @@ export const DUMMY_PRODUCTS = [
     description: "An elegant teal green embroidered cotton kurti with gold thread work and delicate mirror work details. Perfect for casual outings and daily wear.",
     fabric: "Pure Cotton with Gold Thread Embroidery",
     careInstructions: "Machine wash cold. Do not bleach.",
-    category: { id: "cat-3", name: "Kurtis", slug: "kurtis" },
+    category: { id: "cat-4", name: "Dresses / Custom Outfits", slug: "dresses-custom-outfits" },
+    subcategory: null,
     basePrice: 1999,
     baseMrp: 3499,
     images: ["/images/products/kurti-teal.jpg"],
@@ -76,7 +124,8 @@ export const DUMMY_PRODUCTS = [
     description: "A gorgeous navy blue floor-length Anarkali gown with silver zardozi embroidery and a flowy net dupatta. An absolute showstopper for weddings and receptions.",
     fabric: "Georgette with Net Dupatta",
     careInstructions: "Dry clean only.",
-    category: { id: "cat-4", name: "Anarkalis", slug: "anarkalis" },
+    category: { id: "cat-2", name: "Suits", slug: "suits" },
+    subcategory: { id: "sub-2-2", name: "Anarkali", slug: "anarkali" },
     basePrice: 12999,
     baseMrp: 19999,
     images: ["/images/products/anarkali-navy.jpg"],
@@ -95,7 +144,8 @@ export const DUMMY_PRODUCTS = [
     description: "An elegant peach chikankari salwar suit set with matching dupatta. Featuring traditional Lucknowi white thread work on soft peach fabric for a graceful look.",
     fabric: "Pure Cotton with Chikankari Embroidery",
     careInstructions: "Hand wash in cold water. Do not wring.",
-    category: { id: "cat-5", name: "Suits", slug: "suits" },
+    category: { id: "cat-2", name: "Suits", slug: "suits" },
+    subcategory: { id: "sub-2-1", name: "3-Piece Suits", slug: "3-piece-suits" },
     basePrice: 4499,
     baseMrp: 6999,
     images: ["/images/products/suit-peach.jpg"],
@@ -115,7 +165,8 @@ export const DUMMY_PRODUCTS = [
     description: "A luxurious golden-beige silk dupatta with fine embroidery and sequin work. A versatile accessory that adds elegance to any outfit.",
     fabric: "Pure Silk with Zari Work",
     careInstructions: "Dry clean only.",
-    category: { id: "cat-6", name: "Dupattas", slug: "dupattas" },
+    category: { id: "cat-6", name: "Bridal & Wedding", slug: "bridal-wedding" },
+    subcategory: { id: "sub-6-3", name: "Wedding Accessories", slug: "wedding-accessories" },
     basePrice: 2499,
     baseMrp: 4999,
     images: ["/images/products/dupatta-gold.jpg"],
@@ -133,6 +184,7 @@ export const DUMMY_PRODUCTS = [
     fabric: "Pure Silk with Zari Border",
     careInstructions: "Dry clean only. Store in muslin cloth.",
     category: { id: "cat-1", name: "Sarees", slug: "sarees" },
+    subcategory: { id: "sub-1-5", name: "Designer Sarees", slug: "designer-sarees" },
     basePrice: 11999,
     baseMrp: 18999,
     images: ["/images/products/saree-green.jpg"],
@@ -149,7 +201,8 @@ export const DUMMY_PRODUCTS = [
     description: "A magnificent rose gold festive lehenga with intricate sequin and pearl embellishments. Perfect for sangeet, mehendi, and festive celebrations.",
     fabric: "Net with Satin Lining",
     careInstructions: "Dry clean only. Handle embellishments with care.",
-    category: { id: "cat-2", name: "Lehengas", slug: "lehengas" },
+    category: { id: "cat-3", name: "Lehengas", slug: "lehengas" },
+    subcategory: { id: "sub-3-2", name: "Designer Lehengas", slug: "designer-lehengas" },
     basePrice: 18999,
     baseMrp: 29999,
     images: ["/images/products/lehenga-pink.jpg"],
@@ -163,15 +216,21 @@ export const DUMMY_PRODUCTS = [
   },
 ];
 
-export const DUMMY_HERO = {
-  imageUrl: "/images/hero/hero-1.jpg",
-  heading: "Discover the Art of Tradition",
-  subheading: "Timeless silhouettes. Contemporary elegance. Handcrafted with love.",
-  ctaText: "Shop New Arrivals",
-  ctaUrl: "/shop?sort=newest",
-  secondaryCtaText: "Explore Collections",
-  secondaryCtaUrl: "/shop",
-};
+// First slide carries the headline + CTAs; the rest are image-only (no ctaText) and link to ctaUrl.
+export const HERO_SLIDES = [
+  {
+    imageUrl: "/images/hero/hero-1.jpg",
+    heading: "Discover the Art of Tradition",
+    subheading: "Shop New Arrivals & Explore Collections",
+    ctaText: "Shop New Arrivals",
+    ctaUrl: "/shop?sort=newest",
+    secondaryCtaText: "Explore Collections",
+    secondaryCtaUrl: "/shop",
+  },
+  { imageUrl: "/images/hero/hero-2.jpg", heading: "Banarasi Silk Saree", ctaUrl: "/category/sarees?sub=banarasi" },
+  { imageUrl: "/images/hero/hero-3.jpg", heading: "Bridal Lehenga Collection", ctaUrl: "/category/lehengas?sub=bridal-lehengas" },
+  { imageUrl: "/images/hero/hero-4.jpg", heading: "Anarkali Suits", ctaUrl: "/category/suits?sub=anarkali" },
+];
 
 export const DUMMY_TESTIMONIALS = [
   {
@@ -209,25 +268,4 @@ export const DUMMY_REELS = [
   { id: "reel-2", image: "/images/reels/reel-2.jpg", caption: "Bridal Collection 2026", productSlug: "blush-pink-bridal-lehenga" },
   { id: "reel-3", image: "/images/reels/reel-3.jpg", caption: "Festive Ready", productSlug: "navy-zardozi-anarkali" },
   { id: "reel-4", image: "/images/reels/reel-4.jpg", caption: "Everyday Elegance", productSlug: "teal-embroidered-kurti" },
-];
-
-export const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "Free Size"];
-export const COLORS = [
-  { name: "Maroon", hex: "#722F37" },
-  { name: "Blush Pink", hex: "#F2E4DB" },
-  { name: "Teal", hex: "#008080" },
-  { name: "Navy Blue", hex: "#1B2A4A" },
-  { name: "Peach", hex: "#FFDAB9" },
-  { name: "Golden", hex: "#C5A55A" },
-  { name: "Emerald Green", hex: "#50C878" },
-  { name: "Rose Gold", hex: "#B76E79" },
-];
-
-export const SORT_OPTIONS = [
-  { value: "recommended", label: "Recommended" },
-  { value: "newest", label: "Newest First" },
-  { value: "price_low_to_high", label: "Price: Low to High" },
-  { value: "price_high_to_low", label: "Price: High to Low" },
-  { value: "bestseller", label: "Bestsellers" },
-  { value: "discount", label: "Discount" },
 ];

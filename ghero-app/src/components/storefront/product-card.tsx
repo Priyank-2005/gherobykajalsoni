@@ -7,20 +7,10 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { PriceDisplay } from '@/components/ui/price-display';
 
-interface Product {
-  id: string;
-  slug: string;
-  name: string;
-  category: { id: string; name: string; slug: string };
-  images: string[];
-  basePrice: number;
-  baseMrp: number;
-  isNewArrival?: boolean;
-  isBestseller?: boolean;
-}
+import type { ProductCardData } from '@/types/product';
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductCardData;
   className?: string;
 }
 
@@ -46,11 +36,16 @@ export function ProductCard({ product, className }: ProductCardProps) {
             {product.isNewArrival && <Badge variant="new">New Arrival</Badge>}
             {product.isBestseller && <Badge variant="bestseller">Bestseller</Badge>}
           </div>
+          {!product.inStock && (
+            <div className="absolute inset-x-0 bottom-0 bg-charcoal/70 text-white text-xs uppercase tracking-widest text-center py-2 z-10">
+              Sold out
+            </div>
+          )}
         </div>
 
         <div className="p-4 flex flex-col flex-1 gap-1.5">
           <p className="text-xs text-gold/80 uppercase tracking-wider font-body">
-            {product.category.name}
+            {product.subcategory?.name ?? product.category.name}
           </p>
           <h3 className="font-heading text-lg text-charcoal line-clamp-2 leading-tight group-hover:text-gold transition-colors">
             {product.name}

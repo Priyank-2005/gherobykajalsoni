@@ -1,45 +1,34 @@
-import { Decimal } from "@prisma/client/runtime/library";
-
 /**
- * Public-facing product types (safe to send to client).
+ * Public-facing product types (safe to send to the client). All money values are rupees.
  */
-export interface ProductCard {
+
+export interface CategoryRef {
   id: string;
   name: string;
   slug: string;
-  basePrice: number;
-  baseMrp: number;
-  categoryName: string;
-  categorySlug: string;
-  imageUrl: string | null;
-  isBestseller: boolean;
-  isNewArrival: boolean;
-  discount: number; // Calculated percentage
-  hasVariants: boolean;
-  minPrice: number;
-  maxPrice: number;
 }
 
-export interface ProductDetail {
+export type SubcategoryInfo = CategoryRef;
+
+export interface CategoryWithSubcategories extends CategoryRef {
+  image: string | null;
+  subcategories: SubcategoryInfo[];
+}
+
+/** Shape rendered by <ProductCard>. */
+export interface ProductCardData {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
-  fabric: string | null;
-  careInstructions: string | null;
-  sizeGuide: string | null;
+  category: CategoryRef;
+  subcategory: SubcategoryInfo | null;
+  images: string[];
   basePrice: number;
   baseMrp: number;
-  category: {
-    id: string;
-    name: string;
-    slug: string;
-  };
-  variants: ProductVariantInfo[];
-  images: ProductImageInfo[];
-  videos: ProductVideoInfo[];
+  discount: number; // percentage
   isBestseller: boolean;
   isNewArrival: boolean;
+  inStock: boolean;
 }
 
 export interface ProductVariantInfo {
@@ -58,47 +47,68 @@ export interface ProductImageInfo {
   id: string;
   url: string;
   alt: string | null;
-  displayOrder: number;
 }
 
 export interface ProductVideoInfo {
   id: string;
   url: string;
   thumbnail: string | null;
-  displayOrder: number;
 }
 
-/**
- * Product listing filters.
- */
+export interface ProductDetail {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  fabric: string | null;
+  careInstructions: string | null;
+  sizeGuide: string | null;
+  basePrice: number;
+  baseMrp: number;
+  category: CategoryRef;
+  subcategory: SubcategoryInfo | null;
+  variants: ProductVariantInfo[];
+  images: ProductImageInfo[];
+  videos: ProductVideoInfo[];
+  isBestseller: boolean;
+  isNewArrival: boolean;
+}
+
+export const PRODUCT_SORT_OPTIONS = [
+  { value: "recommended", label: "Recommended" },
+  { value: "newest", label: "Newest First" },
+  { value: "price_low_to_high", label: "Price: Low to High" },
+  { value: "price_high_to_low", label: "Price: High to Low" },
+  { value: "bestseller", label: "Bestsellers" },
+  { value: "discount", label: "Discount" },
+] as const;
+
+export type ProductSortOption = (typeof PRODUCT_SORT_OPTIONS)[number]["value"];
+
 export interface ProductFilters {
-  category?: string;
+  category?: string; // slug
+  subcategory?: string; // slug, scoped to `category`
   minPrice?: number;
   maxPrice?: number;
   sizes?: string[];
   colors?: string[];
-  availability?: "in_stock" | "all";
-  discount?: number; // Minimum discount percentage
+  inStock?: boolean;
+  minDiscount?: number; // percentage
   search?: string;
 }
 
-export type ProductSortOption =
-  | "recommended"
-  | "newest"
-  | "price_low_to_high"
-  | "price_high_to_low"
-  | "bestseller"
-  | "discount";
+export interface ProductFacets {
+  categories: { slug: string; name: string; count: number }[];
+  sizes: string[];
+  colors: { name: string; hex: string }[];
+  priceRange: { min: number; max: number };
+}
 
 export interface ProductListResponse {
-  products: ProductCard[];
+  products: ProductCardData[];
   total: number;
   page: number;
+  pageSize: number;
   totalPages: number;
-  filters: {
-    categories: { slug: string; name: string; count: number }[];
-    sizes: string[];
-    colors: { name: string; hex: string }[];
-    priceRange: { min: number; max: number };
-  };
+  facets: ProductFacets;
 }

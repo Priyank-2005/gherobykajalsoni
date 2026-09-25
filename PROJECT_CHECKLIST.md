@@ -23,8 +23,8 @@
 - [x] Configure ESLint & Prettier
 - [x] Set up Prisma with PostgreSQL
 - [x] Create initial Prisma schema
-- [ ] Run initial migration
-- [ ] Create seed script
+- [x] Run initial migration
+- [x] Create seed script
 - [x] Set up project directory structure
 - [x] Configure fonts (heading + body)
 - [x] Set up color palette / design tokens
@@ -58,229 +58,232 @@
 - [x] Product count display
 - [x] Empty state
 - [x] Loading state (skeleton)
-- [ ] Responsive layout
+- [x] Responsive layout
 
 ### Category Page (/category/[slug])
-- [ ] Category header
-- [ ] Filtered product grid
-- [ ] All shop filters applied to category
-- [ ] Breadcrumbs
+- [x] Category header
+- [x] Filtered product grid
+- [x] All shop filters applied to category
+- [x] Breadcrumbs
+- [x] Subcategory filter chips (`?sub=<slug>`, dummy data)
 
 ### Search Page (/search)
-- [ ] Search input with suggestions/autocomplete
-- [ ] Search results grid
-- [ ] No results state
-- [ ] Empty search state
-- [ ] Loading state
+- [x] Search input with suggestions/autocomplete
+- [x] Search results grid
+- [x] No results state
+- [x] Empty search state
+- [x] Loading state
 
 ### Product Detail Page (/product/[slug])
-- [ ] Image gallery
-- [ ] Video player (if available)
-- [ ] Product info (name, SKU, price, MRP, discount)
-- [ ] Size selection
-- [ ] Color selection
-- [ ] Variant selection logic
-- [ ] Stock availability display
-- [ ] Quantity selector
-- [ ] Add to cart button
-- [ ] Buy now button
-- [ ] Product description
-- [ ] Fabric details
-- [ ] Care instructions
-- [ ] Size guide
-- [ ] Shipping information
-- [ ] Return information
-- [ ] Responsive layout
+- [x] Image gallery
+- [x] Video player (if available)
+- [x] Product info (name, SKU, price, MRP, discount)
+- [x] Size selection
+- [x] Color selection
+- [x] Variant selection logic
+- [x] Stock availability display
+- [x] Quantity selector
+- [x] Add to cart button
+- [x] Buy now button
+- [x] Product description
+- [x] Fabric details
+- [x] Care instructions
+- [x] Size guide
+- [x] Shipping information
+- [x] Return information
+- [x] Responsive layout
 
 ### Cart Page (/cart)
-- [ ] Cart item list
-- [ ] Product image, name, variant
-- [ ] Quantity controls
-- [ ] Remove item
-- [ ] Coupon input
-- [ ] Price breakdown (subtotal, discount, total)
-- [ ] Proceed to checkout button
-- [ ] Empty cart state
-- [ ] Responsive layout
+- [x] Cart item list
+- [x] Product image, name, variant
+- [x] Quantity controls
+- [x] Remove item
+- [x] Coupon input
+- [x] Price breakdown (subtotal, discount, total)
+- [x] Proceed to checkout button
+- [x] Empty cart state
+- [x] Responsive layout
 
 ### Checkout Page (/checkout)
-- [ ] Address form (Full Name, Email, Phone, Address, Apartment, Area, City, State, Pincode, Country)
-- [ ] Form validation (Zod)
-- [ ] Order summary
-- [ ] Coupon display
-- [ ] Authentication gate (OTP flow)
-- [ ] Saved address selection (for logged-in users)
-- [ ] Responsive layout
+- [x] Address form (Full Name, Email, Phone, Address, Apartment, Area, City, State, Pincode, Country)
+- [x] Form validation (Zod)
+- [x] Order summary
+- [x] Coupon display
+- [x] Authentication gate (OTP flow)
+- [x] Saved address selection (for logged-in users)
+- [x] Responsive layout
 
 ### Static Pages
-- [ ] About page
-- [ ] Contact page
-- [ ] Privacy Policy page
-- [ ] Terms & Conditions page
-- [ ] Refund Policy page
-- [ ] Shipping Policy page
+- [x] About page
+- [x] Contact page
+- [x] Privacy Policy page
+- [x] Terms & Conditions page
+- [x] Refund Policy page
+- [x] Shipping Policy page
 
 ### UI Components (Shared)
-- [ ] Product card component
-- [ ] Button component
-- [ ] Input component
-- [ ] Select component
-- [ ] Modal/Dialog component
-- [ ] Toast notification component
-- [ ] Skeleton loader components
-- [ ] Badge component
-- [ ] Breadcrumb component
-- [ ] Pagination component
-- [ ] Rating/Stars component
-- [ ] Price display component (MRP, discount, sale price)
-- [ ] Image component (with Cloudinary/Next Image)
-- [ ] Loading spinner
-- [ ] Empty state component
-- [ ] Error state component
+- [x] Product card component
+- [x] Button component
+- [x] Input component
+- [x] Select component
+- [x] Modal/Dialog component
+- [x] Toast notification component
+- [x] Skeleton loader components
+- [x] Badge component
+- [x] Breadcrumb component
+- [x] Pagination component
+- [x] Rating/Stars component
+- [x] Price display component (MRP, discount, sale price)
+- [x] Image component (with Cloudinary/Next Image)
+- [x] Loading spinner
+- [x] Empty state component
+- [x] Error state component
 
 ## Phase 3: Database & Backend
 
 ### Database Schema
-- [ ] User model
-- [ ] Session model
-- [ ] Address model
-- [ ] Category model
-- [ ] Product model
-- [ ] ProductVariant model
-- [ ] ProductImage model
-- [ ] ProductVideo model
-- [ ] Cart model
-- [ ] CartItem model
-- [ ] Order model
-- [ ] OrderItem model
-- [ ] Payment model
-- [ ] Coupon model
-- [ ] CouponUsage model
-- [ ] HomepageHero model
-- [ ] HomepageCategory model
-- [ ] HomepageReel model
-- [ ] Testimonial model
-- [ ] EmailEvent model
-- [ ] WhatsAppEvent model
-- [ ] Add indexes (email, SKU, slug, order number, etc.)
-- [ ] Add unique constraints
-- [ ] Run migrations
-- [ ] Verify schema
+- [x] User model
+- [x] Session model
+- [x] Address model
+- [x] Category model
+- [x] Subcategory model (flat label owned by Category; Product.subcategoryId optional)
+- [x] Product model
+- [x] ProductVariant model
+- [x] ProductImage model
+- [x] ProductVideo model
+- [x] Cart model
+- [x] CartItem model
+- [x] Order model
+- [x] OrderItem model
+- [x] Payment model
+- [x] Coupon model
+- [x] CouponUsage model
+- [x] HomepageHero model
+- [x] HomepageCategory model
+- [x] HomepageReel model
+- [x] Testimonial model
+- [x] EmailEvent model
+- [x] WhatsAppEvent model
+- [x] Add indexes (email, SKU, slug, order number, etc.)
+- [x] Add unique constraints
+- [x] Run migrations
+- [x] Verify schema
 
 ### Backend Services
-- [ ] authService
-- [ ] productService
-- [ ] categoryService
-- [ ] cartService
-- [ ] checkoutService
-- [ ] orderService
-- [ ] paymentService
-- [ ] couponService
-- [ ] inventoryService
-- [ ] emailService
-- [ ] whatsappService
-- [ ] mediaService
-- [ ] homepageService
-- [ ] userService
-- [ ] addressService
+- [x] authService
+- [x] productService
+- [x] categoryService (incl. inline subcategory create/update/delete in one transaction)
+- [x] cartService
+- [x] checkoutService
+- [x] orderService
+- [x] paymentService
+- [x] couponService
+- [x] inventoryService
+- [x] emailService
+- [x] whatsappService
+- [x] mediaService
+- [x] homepageService
+- [x] userService
+- [x] addressService
 
 ### API Routes
-- [ ] Auth: POST /api/auth/send-otp
-- [ ] Auth: POST /api/auth/verify-otp
-- [ ] Auth: POST /api/auth/logout
-- [ ] Auth: GET /api/auth/session
-- [ ] Products: GET /api/products
-- [ ] Products: GET /api/products/[slug]
-- [ ] Categories: GET /api/categories
-- [ ] Categories: GET /api/categories/[slug]
-- [ ] Search: GET /api/search
-- [ ] Cart: GET /api/cart
-- [ ] Cart: POST /api/cart/add
-- [ ] Cart: PUT /api/cart/update
-- [ ] Cart: DELETE /api/cart/remove
-- [ ] Cart: POST /api/cart/coupon
-- [ ] Cart: DELETE /api/cart/coupon
-- [ ] Checkout: POST /api/checkout
-- [ ] Payment: POST /api/payment/create-order
-- [ ] Payment: POST /api/payment/verify
-- [ ] Payment: POST /api/payment/webhook
-- [ ] Orders: GET /api/orders
-- [ ] Orders: GET /api/orders/[id]
-- [ ] User: GET /api/user/profile
-- [ ] User: PUT /api/user/profile
-- [ ] Addresses: GET /api/addresses
-- [ ] Addresses: POST /api/addresses
-- [ ] Addresses: PUT /api/addresses/[id]
-- [ ] Addresses: DELETE /api/addresses/[id]
-- [ ] Homepage: GET /api/homepage
-- [ ] Admin: All admin API routes (document each)
+- [x] Auth: POST /api/auth/send-otp
+- [x] Auth: POST /api/auth/verify-otp
+- [x] Auth: POST /api/auth/logout
+- [x] Auth: GET /api/auth/session
+- [x] Products: GET /api/products
+- [x] Products: GET /api/products/[slug]
+- [x] Categories: GET /api/categories
+- [x] Categories: GET /api/categories/[slug]
+- [x] Categories list/detail responses include visible subcategories
+- [x] Search: GET /api/search
+- [x] Cart: GET /api/cart
+- [x] Cart: POST /api/cart/add
+- [x] Cart: PUT /api/cart/update
+- [x] Cart: DELETE /api/cart/remove
+- [x] Cart: POST /api/cart/coupon
+- [x] Cart: DELETE /api/cart/coupon
+- [x] Checkout: POST /api/checkout
+- [ ] Payment: POST /api/payment/create-order *(implemented; verify once Razorpay test keys are in .env)*
+- [ ] Payment: POST /api/payment/verify *(implemented; verify once Razorpay test keys are in .env)*
+- [x] Payment: POST /api/payment/webhook
+- [x] Orders: GET /api/orders
+- [x] Orders: GET /api/orders/[id]
+- [x] User: GET /api/user/profile
+- [x] User: PUT /api/user/profile
+- [x] Addresses: GET /api/addresses
+- [x] Addresses: POST /api/addresses
+- [x] Addresses: PUT /api/addresses/[id]
+- [x] Addresses: DELETE /api/addresses/[id]
+- [x] Homepage: GET /api/homepage
+- [x] Admin: All admin API routes (document each)
 
 ## Phase 4: Authentication & OTP
-- [ ] OTP generation (server-side, secure)
-- [ ] OTP storage (hashed, with expiration)
-- [ ] OTP validation
-- [ ] OTP rate limiting
-- [ ] OTP attempt limiting
-- [ ] OTP resend cooldown
-- [ ] Send OTP via email
-- [ ] Email verification flow
-- [ ] Auto-create account from checkout info
-- [ ] Recognize existing accounts
-- [ ] Session creation (HTTP-only cookies)
-- [ ] Session validation middleware
-- [ ] Session expiration
-- [ ] Logout
-- [ ] Protected route middleware
-- [ ] Admin route middleware
+- [x] OTP generation (server-side, secure)
+- [x] OTP storage (hashed, with expiration)
+- [x] OTP validation
+- [x] OTP rate limiting
+- [x] OTP attempt limiting
+- [x] OTP resend cooldown
+- [x] Send OTP via email
+- [x] Email verification flow
+- [x] Auto-create account from checkout info
+- [x] Recognize existing accounts
+- [x] Session creation (HTTP-only cookies)
+- [x] Session validation middleware
+- [x] Session expiration
+- [x] Logout
+- [x] Protected route middleware
+- [x] Admin route middleware
 
 ## Phase 5: Cart & Checkout
-- [ ] Add to cart (with variant)
-- [ ] Remove from cart
-- [ ] Update quantity
-- [ ] Server-side price recalculation
-- [ ] Stock validation on cart operations
-- [ ] Coupon application (server-side validation)
-- [ ] Coupon removal
-- [ ] Checkout form validation
-- [ ] Address validation
-- [ ] Authentication gate at checkout
-- [ ] Create order from checkout
-- [ ] Inventory reservation/validation
+- [x] Add to cart (with variant)
+- [x] Remove from cart
+- [x] Update quantity
+- [x] Server-side price recalculation
+- [x] Stock validation on cart operations
+- [x] Coupon application (server-side validation)
+- [x] Coupon removal
+- [x] Checkout form validation
+- [x] Address validation
+- [x] Authentication gate at checkout
+- [x] Create order from checkout
+- [x] Inventory reservation/validation
 
 ## Phase 6: Razorpay Payment
-- [ ] Razorpay SDK integration
-- [ ] Create Razorpay order (server-side)
-- [ ] Open Razorpay checkout modal
-- [ ] Server-side payment verification (signature)
-- [ ] Webhook endpoint
-- [ ] Webhook signature verification
-- [ ] Idempotency protection (no duplicate orders)
-- [ ] Handle successful payment
-- [ ] Handle failed payment
-- [ ] Handle cancelled payment
-- [ ] Handle payment mismatch
-- [ ] Transactional inventory deduction on payment success
+- [ ] Razorpay SDK integration *(implemented; verify once Razorpay test keys are in .env)*
+- [ ] Create Razorpay order (server-side) *(implemented; verify once Razorpay test keys are in .env)*
+- [ ] Open Razorpay checkout modal *(implemented; verify once Razorpay test keys are in .env)*
+- [ ] Server-side payment verification (signature) *(implemented; verify once Razorpay test keys are in .env)*
+- [x] Webhook endpoint
+- [x] Webhook signature verification
+- [x] Idempotency protection (no duplicate orders)
+- [x] Handle successful payment
+- [ ] Handle failed payment *(implemented; verify once Razorpay test keys are in .env)*
+- [x] Handle cancelled payment
+- [ ] Handle payment mismatch *(implemented; verify once Razorpay test keys are in .env)*
+- [x] Transactional inventory deduction on payment success
 
 ## Phase 7: Orders & Inventory
-- [ ] Order creation with immutable snapshots
-- [ ] Order status workflow (PENDING → PAID → PROCESSING → SHIPPED → DELIVERED → CANCELLED)
-- [ ] Order listing (user)
-- [ ] Order detail (user)
-- [ ] Inventory tracking (variant-level)
-- [ ] Prevent negative inventory
-- [ ] Concurrent purchase handling
-- [ ] Order number generation
+- [x] Order creation with immutable snapshots
+- [x] Order status workflow (PENDING → PAID → PROCESSING → SHIPPED → DELIVERED → CANCELLED)
+- [x] Order listing (user)
+- [x] Order detail (user)
+- [x] Inventory tracking (variant-level)
+- [x] Prevent negative inventory
+- [x] Concurrent purchase handling
+- [x] Order number generation
 
 ## Phase 8: Customer Account
-- [ ] Login page
-- [ ] Verify page (OTP input)
-- [ ] Account layout
-- [ ] Profile page (view/edit)
-- [ ] Orders list page
-- [ ] Order detail page
-- [ ] Addresses page (CRUD)
-- [ ] Default address
-- [ ] Logout functionality
+- [x] Login page
+- [x] Verify page (OTP input)
+- [x] Account layout
+- [x] Profile page (view/edit)
+- [x] Orders list page
+- [x] Order detail page
+- [x] Addresses page (CRUD)
+- [x] Default address
+- [x] Logout functionality
 
 ## Phase 9: Admin Panel
 
@@ -310,6 +313,7 @@
 - [ ] Variant management (size, color, SKU, inventory)
 - [ ] Price/MRP setting
 - [ ] Category assignment
+- [ ] Subcategory assignment (dropdown filtered by chosen category; optional; server verifies it belongs to the category)
 - [ ] Description/fabric/care
 - [ ] Bestseller/New Arrival flags
 - [ ] Publish/Unpublish toggle
@@ -343,6 +347,8 @@
 - [ ] Delete category
 - [ ] Category image upload
 - [ ] Category slug management
+- [ ] Add / edit / reorder / hide / delete subcategories inside the category form
+- [ ] Seed client's category + subcategory list
 
 ## Phase 10: Homepage CMS
 - [ ] Hero management (image, mobile image, heading, subheading, CTAs, visibility)
@@ -454,11 +460,11 @@
 - [ ] Expired OTP
 - [ ] Resend OTP
 - [ ] OTP brute force protection
-- [ ] Logout
+- [x] Logout
 
 ### Cart Tests
 - [ ] Add to cart
-- [ ] Remove from cart
+- [x] Remove from cart
 - [ ] Quantity update
 - [ ] Out-of-stock handling
 - [ ] Variant selection

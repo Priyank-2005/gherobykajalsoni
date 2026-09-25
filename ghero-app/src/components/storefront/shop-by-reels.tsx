@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Play } from "lucide-react";
-import { DUMMY_REELS } from "@/lib/dummy-data";
+import type { HomepageData } from "@/lib/services/homepage.service";
 
-export default function ShopByReels() {
+export default function ShopByReels({ reels }: { reels: HomepageData["reels"] }) {
+  if (reels.length === 0) return null;
   return (
     <section className="py-16 md:py-24 border-t border-baby-pink-deep/50 overflow-hidden">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -18,15 +19,28 @@ export default function ShopByReels() {
         </div>
         
         <div className="flex overflow-x-auto pb-8 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 gap-4 md:gap-6 hide-scrollbar snap-x">
-          {DUMMY_REELS.map((reel) => (
+          {reels.map((reel) => (
             <div key={reel.id} className="snap-center shrink-0 w-[240px] md:w-auto relative aspect-[9/16] rounded-xl overflow-hidden group cursor-pointer">
-              <Link href={`/product/${reel.productSlug}`}>
-                <Image
-                  src={reel.image}
-                  alt={reel.caption}
-                  fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
-                />
+              <Link href={reel.link ?? "/shop"}>
+                {reel.mediaType === "video" ? (
+                  <video
+                    src={reel.mediaUrl}
+                    poster={reel.thumbnail ?? undefined}
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <Image
+                    src={reel.mediaUrl}
+                    alt={reel.caption ?? "Ghero reel"}
+                    fill
+                    sizes="(max-width: 768px) 240px, 25vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300" />
                 <div className="absolute inset-0 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
                   <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">

@@ -49,6 +49,7 @@ export interface AdminProductListItem {
   name: string;
   slug: string;
   category: string;
+  subcategory: string | null;
   basePrice: number;
   baseMrp: number;
   totalStock: number;

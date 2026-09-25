@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/storefront/product-card";
-import { DUMMY_PRODUCTS } from "@/lib/dummy-data";
+import type { ProductCardData } from "@/types/product";
 
-export default function NewArrivals() {
-  const newArrivals = DUMMY_PRODUCTS.filter(p => p.isNewArrival).slice(0, 4);
+export default function NewArrivals({ products }: { products: ProductCardData[] }) {
+  if (products.length === 0) return null;
 
   return (
     <section className="py-16 md:py-24 border-t border-baby-pink-deep/50">
@@ -15,14 +15,14 @@ export default function NewArrivals() {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-          {newArrivals.map((product) => (
+          {products.slice(0, 4).map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
         
         <div className="mt-12 flex justify-center">
           <Link 
-            href="/collections/new-arrivals" 
+            href="/shop?sort=newest" 
             className="text-gold border-b border-gold pb-1 hover:text-wine hover:border-wine transition-colors"
           >
             View All New Arrivals

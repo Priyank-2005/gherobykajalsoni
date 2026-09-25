@@ -16,6 +16,8 @@ export default function RefundPolicyPage() {
       <h1 className="font-heading text-4xl text-charcoal mb-8">Refund & Return Policy</h1>
 
       <div className="prose prose-lg prose-p:font-body prose-headings:font-heading prose-a:text-wine max-w-none text-gray-700">
+        <p className="text-sm text-gray-500 mb-8">Last updated: September 25, 2026</p>
+
         <h2>Returns</h2>
         <p>
           Our return policy lasts 7 days from the date of delivery. If 7 days have gone by since your purchase was delivered, unfortunately, we can&apos;t offer you a refund or exchange.
@@ -37,7 +39,7 @@ export default function RefundPolicyPage() {
 
         <h2>Exchanges</h2>
         <p>
-          We only replace items if they are defective, damaged, or if you received the wrong size. If you need to exchange it for the same item in a different size, send us an email at <a href="mailto:support@gherobykajalsoni.com">support@gherobykajalsoni.com</a>.
+          We only replace items if they are defective, damaged, or if you received the wrong size. If you need to exchange it for the same item in a different size, send us an email at <a href="mailto:gherobykajalsoni@gmail.com">gherobykajalsoni@gmail.com</a>.
         </p>
 
         <h2>Shipping Returns</h2>

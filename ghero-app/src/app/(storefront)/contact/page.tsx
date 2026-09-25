@@ -1,8 +1,9 @@
-"use client";
-
-import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Mail, Phone, MapPin, ExternalLink } from "lucide-react";
+import { ContactForm } from "./contact-form";
+
+export const metadata: Metadata = { title: "Contact Us" };
 
 export default function ContactPage() {
   return (
@@ -28,41 +29,7 @@ export default function ContactPage() {
             our team is here to help.
           </p>
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-body text-gray-700 mb-2">Name</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 px-4 py-3 font-body focus:outline-none focus:border-wine bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-body text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  className="w-full border border-gray-300 px-4 py-3 font-body focus:outline-none focus:border-wine bg-white"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-body text-gray-700 mb-2">Phone</label>
-              <input
-                type="tel"
-                className="w-full border border-gray-300 px-4 py-3 font-body focus:outline-none focus:border-wine bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-body text-gray-700 mb-2">Message</label>
-              <textarea
-                rows={5}
-                className="w-full border border-gray-300 px-4 py-3 font-body focus:outline-none focus:border-wine bg-white resize-none"
-              ></textarea>
-            </div>
-            <button className="bg-wine text-white px-8 py-3 font-body uppercase tracking-wider text-sm hover:bg-wine/90 transition-colors">
-              Send Message
-            </button>
-          </form>
+          <ContactForm />
         </div>
 
         <div className="bg-cream p-10 lg:p-12">
@@ -72,14 +39,14 @@ export default function ContactPage() {
               <Mail className="w-6 h-6 text-wine flex-shrink-0" />
               <div>
                 <h3 className="font-heading text-lg text-charcoal">Email</h3>
-                <p className="font-body text-gray-600 mt-1">contact@gherobykajalsoni.com</p>
+                <a href="mailto:gherobykajalsoni@gmail.com" className="font-body text-gray-600 mt-1 block break-all hover:text-wine transition-colors">gherobykajalsoni@gmail.com</a>
               </div>
             </div>
             <div className="flex items-start gap-4">
               <Phone className="w-6 h-6 text-wine flex-shrink-0" />
               <div>
                 <h3 className="font-heading text-lg text-charcoal">Phone</h3>
-                <p className="font-body text-gray-600 mt-1">+91 9876 543 210</p>
+                <a href="tel:+919166880664" className="font-body text-gray-600 mt-1 block hover:text-wine transition-colors">+91 91668 80664</a>
                 <p className="font-body text-sm text-gray-500 mt-1">Mon-Sat, 10am - 6pm IST</p>
               </div>
             </div>

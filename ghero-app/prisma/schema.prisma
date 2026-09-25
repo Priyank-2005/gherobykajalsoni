@@ -3,12 +3,16 @@
 // ORM: Prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // Load `include`d relations with one JOINed query instead of one query per relation
+  // (big win when the DB is a network hop away).
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("GHERO_DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
@@ -71,7 +75,7 @@ model User {
 }
 
 model Session {
-  id        String   @id @default(cuid())
+  id        String   @id // SHA-256 of the cookie token; the raw token is never stored
   userId    String
   expiresAt DateTime
   userAgent String?
@@ -85,14 +89,15 @@ model Session {
 }
 
 model OtpVerification {
-  id        String   @id @default(cuid())
-  email     String
-  hashedOtp String
-  expiresAt DateTime
-  attempts  Int      @default(0)
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  email      String
+  hashedOtp  String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime? // set on successful verify or when superseded; single-use
+  createdAt  DateTime  @default(now())
 
-  @@index([email])
+  @@index([email, createdAt])
   @@index([expiresAt])
 }
 
@@ -140,10 +145,31 @@ model Category {
   updatedAt DateTime @updatedAt
 
   products           Product[]
+  subcategories      Subcategory[]
   homepageCategories HomepageCategory[]
 
   @@index([slug])
   @@index([displayOrder])
+}
+
+// Flat, single-level label owned by a Category (e.g. Sarees → Banarasi).
+// Managed inline from the admin category form; a product may have at most one.
+model Subcategory {
+  id           String  @id @default(cuid())
+  categoryId   String
+  name         String
+  slug         String // unique within its category
+  displayOrder Int     @default(0)
+  isVisible    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
 }
 
 model Product {
@@ -155,6 +181,7 @@ model Product {
   careInstructions String? @db.Text
   sizeGuide        String? @db.Text
   categoryId       String
+  subcategoryId    String? // must belong to categoryId (enforced in product service)
   basePrice        Decimal @db.Decimal(10, 2)
   baseMrp          Decimal @db.Decimal(10, 2)
   isBestseller     Boolean @default(false)
@@ -164,7 +191,8 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  category      Category        @relation(fields: [categoryId], references: [id])
+  category      Category         @relation(fields: [categoryId], references: [id])
+  subcategory   Subcategory?     @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   variants      ProductVariant[]
   images        ProductImage[]
   videos        ProductVideo[]
@@ -172,6 +200,7 @@ model Product {
 
   @@index([slug])
   @@index([categoryId])
+  @@index([subcategoryId])
   @@index([isPublished])
   @@index([isBestseller])
   @@index([isNewArrival])
@@ -194,8 +223,9 @@ model ProductVariant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  cartItems CartItem[]
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@index([productId])
   @@index([sku])
@@ -203,12 +233,12 @@ model ProductVariant {
 }
 
 model ProductImage {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   productId    String
   url          String
   cloudinaryId String
   alt          String?
-  displayOrder Int    @default(0)
+  displayOrder Int     @default(0)
 
   createdAt DateTime @default(now())
 
@@ -245,8 +275,8 @@ model Cart {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coupon Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  user   User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon Coupon?    @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items  CartItem[]
 }
 
@@ -272,17 +302,22 @@ model CartItem {
 // ============================================
 
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique
-  userId          String
-  status          OrderStatus @default(PENDING_PAYMENT)
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  userId      String
+  status      OrderStatus @default(PENDING_PAYMENT)
 
-  // Pricing (all server-calculated)
-  subtotal        Decimal     @db.Decimal(10, 2)
-  discount        Decimal     @db.Decimal(10, 2) @default(0)
-  couponCode      String?
-  couponDiscount  Decimal     @db.Decimal(10, 2) @default(0)
-  total           Decimal     @db.Decimal(10, 2)
+  // Client-supplied key per checkout attempt; repeat submits return the same order
+  idempotencyKey String? @unique
+
+  // Pricing (all server-calculated): total = subtotal - couponDiscount + shippingFee
+  subtotal       Decimal @db.Decimal(10, 2) // sum of selling price x qty
+  discount       Decimal @default(0) @db.Decimal(10, 2) // MRP savings (informational)
+  couponId       String?
+  couponCode     String?
+  couponDiscount Decimal @default(0) @db.Decimal(10, 2)
+  shippingFee    Decimal @default(0) @db.Decimal(10, 2)
+  total          Decimal @db.Decimal(10, 2)
 
   // Immutable shipping address snapshot
   shippingName     String
@@ -294,11 +329,14 @@ model Order {
   shippingCity     String
   shippingState    String
   shippingPincode  String
-  shippingCountry  String @default("India")
+  shippingCountry  String  @default("India")
+
+  // Stock is decremented at payment capture; true once done (drives restock on cancel)
+  stockCommitted Boolean @default(false)
 
   // Tracking
   trackingUrl String?
-  notes       String?
+  notes       String? // admin/system notes, e.g. payment or stock problems needing review
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -314,8 +352,10 @@ model Order {
 }
 
 model OrderItem {
-  id          String  @id @default(cuid())
-  orderId     String
+  id        String  @id @default(cuid())
+  orderId   String
+  variantId String? // live link for stock updates; null if the variant is later deleted
+  productId String?
 
   // Immutable product snapshot at time of purchase
   productName String
@@ -330,9 +370,11 @@ model OrderItem {
 
   createdAt DateTime @default(now())
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
+  @@index([variantId])
 }
 
 // ============================================
@@ -340,14 +382,14 @@ model OrderItem {
 // ============================================
 
 model Payment {
-  id                  String        @id @default(cuid())
-  orderId             String        @unique
-  razorpayOrderId     String        @unique
-  razorpayPaymentId   String?       @unique
-  razorpaySignature   String?
-  amount              Decimal       @db.Decimal(10, 2)
-  currency            String        @default("INR")
-  status              PaymentStatus @default(PENDING)
+  id                String        @id @default(cuid())
+  orderId           String        @unique
+  razorpayOrderId   String        @unique
+  razorpayPaymentId String?       @unique
+  razorpaySignature String?
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -364,16 +406,16 @@ model Payment {
 // ============================================
 
 model Coupon {
-  id            String      @id @default(cuid())
-  code          String      @unique
+  id            String        @id @default(cuid())
+  code          String        @unique
   type          CouponType
   applyOn       CouponApplyOn
-  discountValue Decimal     @db.Decimal(10, 2)
-  maxDiscount   Decimal?    @db.Decimal(10, 2) // For percentage coupons
-  minCartValue  Decimal?    @db.Decimal(10, 2)
+  discountValue Decimal       @db.Decimal(10, 2)
+  maxDiscount   Decimal?      @db.Decimal(10, 2) // For percentage coupons
+  minCartValue  Decimal?      @db.Decimal(10, 2)
   maxUsage      Int?
-  perUserLimit  Int?        @default(1)
-  isActive      Boolean     @default(true)
+  perUserLimit  Int?          @default(1)
+  isActive      Boolean       @default(true)
   startsAt      DateTime?
   expiresAt     DateTime?
 
@@ -448,7 +490,7 @@ model HomepageReel {
   id           String  @id @default(cuid())
   mediaUrl     String
   cloudinaryId String
-  mediaType    String  // 'image' or 'video'
+  mediaType    String // 'image' or 'video'
   thumbnail    String?
   caption      String?
   productId    String?
@@ -487,7 +529,7 @@ model Testimonial {
 
 model EmailEvent {
   id        String  @id @default(cuid())
-  eventType String  // OTP, ORDER_CONFIRMATION, SHIPPED, DELIVERED
+  eventType String // OTP, ORDER_CONFIRMATION, SHIPPED, DELIVERED
   recipient String
   orderId   String?
   status    String  @default("SENT") // SENT, FAILED
@@ -503,7 +545,7 @@ model EmailEvent {
 
 model WhatsAppEvent {
   id        String  @id @default(cuid())
-  eventType String  // OTP, ORDER_CONFIRMATION, SHIPPED, DELIVERED
+  eventType String // OTP, ORDER_CONFIRMATION, SHIPPED, DELIVERED
   recipient String
   orderId   String?
   status    String  @default("SENT") // SENT, FAILED

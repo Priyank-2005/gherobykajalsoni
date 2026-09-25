@@ -2,27 +2,30 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { DUMMY_TESTIMONIALS } from "@/lib/dummy-data";
+import type { HomepageData } from "@/lib/services/homepage.service";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function Testimonials() {
+export default function Testimonials({ testimonials }: { testimonials: HomepageData["testimonials"] }) {
+  const count = testimonials.length;
   const [current, setCurrent] = useState(0);
 
   const next = useCallback(() => {
-    setCurrent((prev) => (prev + 1) % DUMMY_TESTIMONIALS.length);
-  }, []);
+    setCurrent((prev) => (prev + 1) % count);
+  }, [count]);
 
   const prev = useCallback(() => {
-    setCurrent((prev) => (prev - 1 + DUMMY_TESTIMONIALS.length) % DUMMY_TESTIMONIALS.length);
-  }, []);
+    setCurrent((prev) => (prev - 1 + count) % count);
+  }, [count]);
 
   // Auto-advance
   useEffect(() => {
+    if (count < 2) return;
     const timer = setInterval(next, 6000);
     return () => clearInterval(timer);
-  }, [next]);
+  }, [next, count]);
 
-  const testimonial = DUMMY_TESTIMONIALS[current];
+  if (count === 0) return null;
+  const testimonial = testimonials[Math.min(current, count - 1)];
 
   return (
     <section className="py-16 md:py-24 border-t border-baby-pink-deep/50 overflow-hidden relative">
@@ -53,7 +56,7 @@ export default function Testimonials() {
                 </div>
                 
                 <p className="italic text-charcoal/80 mb-8 font-heading text-xl md:text-2xl leading-relaxed max-w-2xl">
-                  "{testimonial.review}"
+                  &ldquo;{testimonial.review}&rdquo;
                 </p>
                 
                 <div className="flex flex-col items-center">
@@ -61,7 +64,9 @@ export default function Testimonials() {
                     {testimonial.customerName.charAt(0)}
                   </div>
                   <p className="font-medium text-gold text-lg">{testimonial.customerName}</p>
-                  <p className="text-sm text-charcoal/50 mt-1">Purchased: {testimonial.productName}</p>
+                  {testimonial.productName && (
+                    <p className="text-sm text-charcoal/50 mt-1">Purchased: {testimonial.productName}</p>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -87,7 +92,7 @@ export default function Testimonials() {
         
         {/* Dots */}
         <div className="flex justify-center gap-2 mt-8">
-          {DUMMY_TESTIMONIALS.map((_, i) => (
+          {testimonials.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}

@@ -1,216 +1,173 @@
-"use client";
-
-import React, { useState } from "react";
-import Image from "next/image";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DUMMY_PRODUCTS, DUMMY_CATEGORIES } from "@/lib/dummy-data";
-import { formatPrice, calculateDiscount } from "@/lib/utils";
-import { SizeSelector } from "@/components/storefront/size-selector";
-import { ColorSelector } from "@/components/storefront/color-selector";
-import { QuantitySelector } from "@/components/storefront/quantity-selector";
+import { Check, Truck, RotateCcw, ShieldCheck } from "lucide-react";
+import { ProductGallery } from "@/components/storefront/product-gallery";
+import { ProductPurchase } from "@/components/storefront/product-purchase";
 import { ProductAccordion } from "@/components/storefront/product-accordion";
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { ProductCard } from "@/components/storefront/product-card";
+import { Breadcrumb } from "@/components/ui/feedback";
+import { STORE_CONFIG } from "@/lib/config";
+import { formatPrice } from "@/lib/utils";
+import { getProductBySlug, getRelatedProducts } from "@/lib/services/product.service";
 
-export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = React.use(params);
-  const product = DUMMY_PRODUCTS.find((p) => p.slug === slug);
+type Props = { params: Promise<{ slug: string }> };
 
-  if (!product) {
-    notFound();
-  }
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const product = await getProductBySlug((await params).slug);
+  if (!product) return { title: "Product not found" };
+  const description = product.description?.slice(0, 160) ?? `${product.name} from Ghero by Kajal Soni.`;
+  return {
+    title: product.name,
+    description,
+    openGraph: { title: product.name, description, images: product.images[0] ? [{ url: product.images[0].url }] : undefined },
+  };
+}
 
-  const category = DUMMY_CATEGORIES.find((c) => c.slug === product.category.slug);
-  
-  const [selectedSize, setSelectedSize] = useState<string>(product.variants?.[0]?.size || "");
-  const [selectedColor, setSelectedColor] = useState<string>(product.variants?.[0]?.color || "");
-  const [quantity, setQuantity] = useState(1);
+function TextBlock({ text }: { text: string }) {
+  return (
+    <div className="space-y-2">
+      {text.split(/\n+/).map((line, i) => (
+        <p key={i}>{line}</p>
+      ))}
+    </div>
+  );
+}
 
-  const discount = calculateDiscount(product.baseMrp, product.basePrice);
-  
+export default async function ProductDetailPage({ params }: Props) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) notFound();
+  const related = await getRelatedProducts(product.id, product.category.id);
+
   const accordionItems = [
-    {
-      title: "Description",
-      content: <p>{product.description || "Elegant traditional wear crafted with precision and care."}</p>
-    },
-    {
-      title: "Fabric & Care",
-      content: (
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Premium blended silk/cotton fabric</li>
-          <li>Dry clean only</li>
-          <li>Do not bleach</li>
-          <li>Iron on low heat</li>
-        </ul>
-      )
-    },
+    { title: "Description", content: <TextBlock text={product.description || "Elegant traditional wear crafted with precision and care."} /> },
+    ...(product.fabric || product.careInstructions
+      ? [
+          {
+            title: "Fabric & Care",
+            content: (
+              <div className="space-y-3">
+                {product.fabric && (
+                  <p>
+                    <span className="font-medium text-charcoal">Fabric: </span>
+                    {product.fabric}
+                  </p>
+                )}
+                {product.careInstructions && <TextBlock text={product.careInstructions} />}
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       title: "Size Guide",
-      content: <p>Please refer to our standard sizing chart. Model is wearing size M and is 5'7" tall.</p>
+      content: (
+        <div id="size-guide">
+          <TextBlock text={product.sizeGuide || "Sizes follow our standard chart. For custom measurements, contact us on WhatsApp before ordering."} />
+        </div>
+      ),
     },
     {
       title: "Shipping & Returns",
       content: (
         <ul className="list-disc pl-5 space-y-1">
-          <li>Free shipping on orders above ₹5000</li>
-          <li>Delivery within 5-7 business days</li>
-          <li>7-day return/exchange policy</li>
+          <li>Free shipping on orders above {formatPrice(STORE_CONFIG.freeShippingThreshold)}</li>
+          <li>Delivery within 5–7 business days</li>
+          <li>
+            See our{" "}
+            <Link href="/refund-policy" className="underline hover:text-wine">
+              refund policy
+            </Link>{" "}
+            for returns and exchanges
+          </li>
         </ul>
-      )
-    }
+      ),
+    },
   ];
+
+  // Structured data for search engines.
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description ?? undefined,
+    image: product.images.map((i) => i.url),
+    sku: product.variants[0]?.sku,
+    brand: { "@type": "Brand", name: "Ghero by Kajal Soni" },
+    offers: product.variants.map((v) => ({
+      "@type": "Offer",
+      sku: v.sku,
+      price: v.price,
+      priceCurrency: "INR",
+      availability: v.isAvailable && v.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    })),
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 lg:py-12">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 mb-8 hidden md:block">
-        <Link href="/" className="hover:text-wine">Home</Link>
-        <span className="mx-2">/</span>
-        <Link href="/shop" className="hover:text-wine">Shop</Link>
-        <span className="mx-2">/</span>
-        {category && (
-          <>
-            <Link href={`/category/${category.slug}`} className="hover:text-wine">{category.name}</Link>
-            <span className="mx-2">/</span>
-          </>
-        )}
-        <span className="text-charcoal font-medium truncate inline-block max-w-[200px] align-bottom">
-          {product.name}
-        </span>
-      </nav>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <Breadcrumb
+        className="hidden md:block"
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Shop", href: "/shop" },
+          { label: product.category.name, href: `/category/${product.category.slug}` },
+          ...(product.subcategory
+            ? [{ label: product.subcategory.name, href: `/category/${product.category.slug}?sub=${product.subcategory.slug}` }]
+            : []),
+          { label: product.name },
+        ]}
+      />
 
-      <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
-        {/* Left Column - Images */}
+      <div className="flex flex-col lg:flex-row gap-10 lg:gap-16">
         <div className="w-full lg:w-1/2">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="relative aspect-[3/4] w-full bg-baby-pink rounded-sm overflow-hidden group"
-          >
-            <Image
-              src={product.images[0]}
-              alt={product.name}
-              fill
-              className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
-              priority
-            />
-          </motion.div>
-          {/* Thumbnail strip could go here if we had multiple images */}
+          <ProductGallery name={product.name} images={product.images} videos={product.videos} />
         </div>
 
-        {/* Right Column - Product Info */}
         <div className="w-full lg:w-1/2 flex flex-col">
-          <motion.div
-             initial={{ opacity: 0, x: 20 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ duration: 0.5, delay: 0.2 }}
+          <Link
+            href={
+              product.subcategory
+                ? `/category/${product.category.slug}?sub=${product.subcategory.slug}`
+                : `/category/${product.category.slug}`
+            }
+            className="text-sm text-wine tracking-widest uppercase font-medium mb-2 inline-block hover:underline self-start"
           >
-            {category && (
-              <Link href={`/category/${category.slug}`} className="text-sm text-wine tracking-widest uppercase font-medium mb-2 inline-block hover:underline">
-                {category.name}
-              </Link>
-            )}
-            
-            <h1 className="text-3xl md:text-4xl font-heading text-charcoal mb-2 leading-tight">
-              {product.name}
-            </h1>
-            
-            <p className="text-sm text-gray-400 mb-6 font-mono">
-              SKU: {product.slug.toUpperCase()}-{product.id}
-            </p>
+            {product.subcategory?.name ?? product.category.name}
+          </Link>
+          <h1 className="text-3xl md:text-4xl font-heading text-charcoal mb-2 leading-tight">{product.name}</h1>
 
-            <div className="flex items-end gap-4 mb-8">
-              <span className="text-2xl font-medium text-charcoal">
-                {formatPrice(product.basePrice)}
-              </span>
-              {product.baseMrp > product.basePrice && (
-                <>
-                  <span className="text-lg text-gray-400 line-through mb-0.5">
-                    {formatPrice(product.baseMrp)}
-                  </span>
-                  <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded mb-1">
-                    {discount}% OFF
-                  </span>
-                </>
-              )}
-            </div>
+          <ProductPurchase productName={product.name} variants={product.variants} />
 
-            <div className="w-full h-px bg-gray-200 mb-8" />
+          <ProductAccordion items={accordionItems} />
 
-            {/* Colors */}
-            {product.variants && product.variants.some(v => v.color) && (
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-charcoal">Color: {selectedColor}</span>
-                </div>
-                <ColorSelector 
-                  colors={Array.from(new Map(product.variants.filter(v => v.color).map(v => [v.color, v.colorHex])).entries()).map(([name, hex]) => ({ name, hex: hex as string }))} 
-                  selectedColor={selectedColor} 
-                  onSelect={setSelectedColor} 
-                />
+          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            {[
+              { icon: Check, label: "100% Authentic" },
+              { icon: ShieldCheck, label: "Secure Checkout" },
+              { icon: Truck, label: "Pan-India Delivery" },
+              { icon: RotateCcw, label: "7-Day Exchanges" },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="p-4 bg-cream/50 rounded-sm">
+                <Icon className="w-5 h-5 mx-auto mb-2 text-wine" aria-hidden />
+                <span className="text-xs font-medium text-charcoal block">{label}</span>
               </div>
-            )}
-
-            {/* Sizes */}
-            {product.variants && product.variants.some(v => v.size) && (
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-charcoal">Size: {selectedSize}</span>
-                  <button className="text-sm text-gray-500 underline hover:text-wine">Size Guide</button>
-                </div>
-                <SizeSelector 
-                  sizes={Array.from(new Set(product.variants.map(v => v.size).filter(Boolean)))} 
-                  selectedSize={selectedSize} 
-                  onSelect={setSelectedSize} 
-                />
-              </div>
-            )}
-
-            {/* Quantity */}
-            <div className="mb-8">
-              <span className="text-sm font-medium text-charcoal block mb-3">Quantity</span>
-              <QuantitySelector quantity={quantity} onChange={setQuantity} max={product.variants.reduce((acc, v) => acc + (v.stock || 0), 0) || 10} />
-            </div>
-
-            {/* Stock Status */}
-            <div className="mb-8 flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${product.variants.reduce((acc, v) => acc + (v.stock || 0), 0) > 5 ? 'bg-green-500' : 'bg-amber-500'}`} />
-              <span className={`text-sm ${product.variants.reduce((acc, v) => acc + (v.stock || 0), 0) > 5 ? 'text-green-600' : 'text-amber-600'}`}>
-                {product.variants.reduce((acc, v) => acc + (v.stock || 0), 0) > 5 ? 'In Stock' : `Only ${product.variants.reduce((acc, v) => acc + (v.stock || 0), 0)} left in stock`}
-              </span>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-10">
-              <button className="flex-1 h-14 bg-white border-2 border-charcoal text-charcoal font-medium text-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                Add to Cart
-              </button>
-              <button className="flex-1 h-14 bg-wine text-white font-medium text-lg hover:bg-wine/90 transition-colors shadow-lg shadow-wine/20">
-                Buy Now
-              </button>
-            </div>
-
-            {/* Accordion */}
-            <div className="mt-auto">
-              <ProductAccordion items={accordionItems} />
-            </div>
-
-            {/* Guarantees */}
-            <div className="mt-8 grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-cream/50 rounded-sm">
-                <Check className="w-5 h-5 mx-auto mb-2 text-wine" />
-                <span className="text-xs font-medium text-charcoal block">100% Authentic</span>
-              </div>
-              <div className="p-4 bg-cream/50 rounded-sm">
-                <Check className="w-5 h-5 mx-auto mb-2 text-wine" />
-                <span className="text-xs font-medium text-charcoal block">Secure Checkout</span>
-              </div>
-            </div>
-          </motion.div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {related.length > 0 && (
+        <section className="mt-20 pt-12 border-t border-gold/20">
+          <h2 className="font-heading text-3xl text-gold text-center mb-10">You May Also Like</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

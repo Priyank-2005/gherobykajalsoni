@@ -1,6 +1,8 @@
 /**
- * Cart types for client-side use.
+ * Cart types for client-side use. Money values are rupees, computed server-side.
  */
+export type CartLineIssue = "UNAVAILABLE" | "OUT_OF_STOCK" | "INSUFFICIENT_STOCK";
+
 export interface CartItemInfo {
   id: string;
   variantId: string;
@@ -17,20 +19,25 @@ export interface CartItemInfo {
     price: number;
     mrp: number;
     stock: number;
-    isAvailable: boolean;
   };
+  lineTotal: number;
+  issue: CartLineIssue | null;
 }
 
 export interface CartSummary {
-  subtotal: number;
-  discount: number;
+  itemCount: number; // total units
+  subtotal: number; // selling price total
+  mrpTotal: number;
+  savings: number; // MRP - selling price
   couponCode: string | null;
   couponDiscount: number;
+  couponError: string | null; // coupon attached but no longer applicable
+  shippingFee: number;
   total: number;
-  itemCount: number;
 }
 
 export interface CartResponse {
   items: CartItemInfo[];
   summary: CartSummary;
+  hasIssues: boolean;
 }

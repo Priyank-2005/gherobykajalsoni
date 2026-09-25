@@ -32,16 +32,16 @@ export function calculateDiscount(mrp: number, price: number): number {
 
 /**
  * Generate a unique order number.
- * Format: GH-YYYYMMDD-XXXXX (e.g., GH-20260923-A3B2C)
+ * Format: GH-YYYYMMDD-XXXXXX (e.g., GH-20260923-A3B2CK); ~1e9 combinations per day
  */
 export function generateOrderNumber(): string {
-  const date = new Date();
-  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
+  // Store is in India: date the order in IST, not UTC (an 01:00 IST order is still "today").
+  const dateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(new Date())
+    .replace(/-/g, "");
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let suffix = "";
-  for (let i = 0; i < 5; i++) {
-    suffix += chars[Math.floor(Math.random() * chars.length)];
-  }
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(6));
+  const suffix = Array.from(bytes, (b) => chars[b % chars.length]).join("");
   return `GH-${dateStr}-${suffix}`;
 }
 

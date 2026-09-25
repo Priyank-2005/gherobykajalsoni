@@ -1,241 +1,325 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Minus, Plus, X, ShoppingBag } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
-import { DUMMY_PRODUCTS } from "@/lib/dummy-data";
+import { Minus, Plus, X, ShoppingBag, Tag, AlertCircle } from "lucide-react";
+import { useStore } from "@/components/storefront/store-provider";
+import { useToast } from "@/components/ui/toast";
+import { Breadcrumb, EmptyState, Spinner } from "@/components/ui/feedback";
+import { SkeletonBox } from "@/components/ui/skeleton";
+import { errorMessage } from "@/lib/api-client";
+import { cn, formatPrice } from "@/lib/utils";
+import type { CartLineIssue } from "@/types/cart";
+
+const ISSUE_TEXT: Record<CartLineIssue, string> = {
+  UNAVAILABLE: "No longer available. Please remove it.",
+  OUT_OF_STOCK: "Out of stock. Please remove it.",
+  INSUFFICIENT_STOCK: "Only a few left. Reduce the quantity.",
+};
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState([
-    {
-      product: DUMMY_PRODUCTS[0],
-      quantity: 1,
-      variant: "M",
-    },
-    {
-      product: DUMMY_PRODUCTS[1],
-      quantity: 2,
-      variant: "S",
-    },
-  ]);
+  const { cart, updateCartItem, removeCartItem, applyCoupon, removeCoupon } = useStore();
+  const toast = useToast();
+  const [busyItem, setBusyItem] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
-  const updateQuantity = (index: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    const newItems = [...cartItems];
-    newItems[index].quantity = newQuantity;
-    setCartItems(newItems);
+  const mutate = async (itemId: string, fn: () => Promise<unknown>) => {
+    setBusyItem(itemId);
+    try {
+      await fn();
+    } catch (error) {
+      toast(errorMessage(error), "error");
+    } finally {
+      setBusyItem(null);
+    }
   };
 
-  const removeItem = (index: number) => {
-    const newItems = [...cartItems];
-    newItems.splice(index, 1);
-    setCartItems(newItems);
+  const submitCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setCouponBusy(true);
+    setCouponError(null);
+    try {
+      await applyCoupon(code.trim());
+      setCode("");
+      toast("Coupon applied");
+    } catch (error) {
+      setCouponError(errorMessage(error));
+    } finally {
+      setCouponBusy(false);
+    }
   };
 
-  const subtotal = cartItems.reduce(
-    (acc, item) => acc + item.product.basePrice * item.quantity,
-    0
-  );
-  const discount = 0; // Replace with actual discount logic
-  const total = subtotal - discount;
-
-  if (cartItems.length === 0) {
+  if (!cart) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center max-w-2xl">
-        <div className="flex justify-center mb-6 text-wine">
-          <ShoppingBag size={64} strokeWidth={1} />
+      <div className="container mx-auto px-4 py-12 max-w-7xl" aria-busy="true">
+        <SkeletonBox className="h-10 w-64 mb-8" />
+        <div className="flex flex-col lg:flex-row gap-12">
+          <div className="flex-1 space-y-6">
+            {[0, 1].map((i) => (
+              <SkeletonBox key={i} className="h-32 w-full" />
+            ))}
+          </div>
+          <SkeletonBox className="w-full lg:w-96 h-80" />
         </div>
-        <h1 className="font-heading text-3xl md:text-4xl text-charcoal mb-4">
-          Your bag is empty
-        </h1>
-        <p className="text-gray-600 font-body mb-8">
-          Looks like you haven&apos;t added anything to your bag yet.
-        </p>
-        <Link
-          href="/shop"
-          className="inline-block bg-wine text-white px-8 py-3 rounded-none font-body text-sm tracking-wider uppercase hover:bg-wine/90 transition-colors"
-        >
-          Continue Shopping
-        </Link>
       </div>
     );
   }
 
+  if (cart.items.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <EmptyState
+          icon={<ShoppingBag size={64} strokeWidth={1} />}
+          title="Your bag is empty"
+          description="Looks like you haven't added anything to your bag yet."
+          action={
+            <Link href="/shop" className="inline-block bg-wine text-white px-8 py-3 text-sm tracking-wider uppercase hover:bg-wine/90 transition-colors">
+              Continue Shopping
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const s = cart.summary;
+
   return (
     <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
-      {/* Breadcrumb */}
-      <nav className="flex items-center text-sm text-gray-500 mb-8 font-body">
-        <Link href="/" className="hover:text-wine transition-colors">
-          Home
-        </Link>
-        <ChevronRight className="w-4 h-4 mx-2" />
-        <span className="text-charcoal">Shopping Bag</span>
-      </nav>
-
-      <h1 className="font-heading text-3xl md:text-4xl text-charcoal mb-8">
-        Shopping Bag
-      </h1>
+      <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Shopping Bag" }]} />
+      <h1 className="font-heading text-3xl md:text-4xl text-charcoal mb-8">Shopping Bag</h1>
 
       <div className="flex flex-col lg:flex-row gap-12">
-        {/* Cart Items */}
-        <div className="flex-grow">
-          <div className="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-gray-200 text-sm font-body text-gray-500 uppercase tracking-wider">
+        <div className="flex-grow min-w-0">
+          <div className="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-gold/20 text-sm text-gray-500 uppercase tracking-wider">
             <div className="col-span-6">Product</div>
             <div className="col-span-2 text-center">Price</div>
             <div className="col-span-2 text-center">Quantity</div>
             <div className="col-span-2 text-right">Subtotal</div>
           </div>
 
-          <div className="space-y-6 md:space-y-0 mt-6 md:mt-0">
-            {cartItems.map((item, index) => (
-              <div
-                key={`${item.product.id}-${item.variant}`}
-                className="grid grid-cols-1 md:grid-cols-12 gap-4 py-6 border-b border-gray-200 items-center"
-              >
-                {/* Mobile View: Product Info */}
-                <div className="col-span-1 md:col-span-6 flex gap-4">
-                  <div className="relative w-24 h-32 md:w-20 md:h-28 flex-shrink-0 bg-gray-100">
-                    <Image
-                      src={item.product.images[0]}
-                      alt={item.product.name}
-                      fill
-                      className="object-cover"
+          <ul>
+            {cart.items.map((item) => {
+              const busy = busyItem === item.id;
+              const variantText = [item.variant.size && `Size: ${item.variant.size}`, item.variant.color && `Colour: ${item.variant.color}`]
+                .filter(Boolean)
+                .join(" · ");
+              const maxQty = Math.min(item.variant.stock, 10);
+              return (
+                <li
+                  key={item.id}
+                  className={cn("grid grid-cols-[auto_1fr] md:grid-cols-12 gap-4 py-6 border-b border-gold/20 items-center", busy && "opacity-60")}
+                >
+                  <div className="md:col-span-6 flex gap-4 col-span-2">
+                    <Link href={`/product/${item.product.slug}`} className="relative w-24 h-32 md:w-20 md:h-28 flex-shrink-0 bg-baby-pink">
+                      {item.product.imageUrl && <Image src={item.product.imageUrl} alt={item.product.name} fill sizes="96px" className="object-cover" />}
+                    </Link>
+                    <div className="flex flex-col justify-center min-w-0">
+                      <Link href={`/product/${item.product.slug}`} className="font-heading text-lg text-charcoal hover:text-wine line-clamp-2">
+                        {item.product.name}
+                      </Link>
+                      {variantText && <p className="text-sm text-gray-500 mt-1">{variantText}</p>}
+                      {item.issue && (
+                        <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4 shrink-0" /> {ISSUE_TEXT[item.issue]}
+                        </p>
+                      )}
+                      <p className="md:hidden text-charcoal mt-2">{formatPrice(item.variant.price)}</p>
+                      <div className="md:hidden flex items-center gap-4 mt-3">
+                        <QuantityControl
+                          quantity={item.quantity}
+                          max={maxQty}
+                          disabled={busy || item.issue === "UNAVAILABLE" || item.issue === "OUT_OF_STOCK"}
+                          onChange={(q) => mutate(item.id, () => updateCartItem(item.id, q))}
+                        />
+                        <button onClick={() => mutate(item.id, () => removeCartItem(item.id))} className="text-sm text-gray-500 hover:text-wine flex items-center gap-1">
+                          <X className="w-4 h-4" /> Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hidden md:block col-span-2 text-center text-charcoal">
+                    {formatPrice(item.variant.price)}
+                    {item.variant.mrp > item.variant.price && (
+                      <span className="block text-xs text-gray-400 line-through">{formatPrice(item.variant.mrp)}</span>
+                    )}
+                  </div>
+
+                  <div className="hidden md:flex col-span-2 justify-center">
+                    <QuantityControl
+                      quantity={item.quantity}
+                      max={maxQty}
+                      disabled={busy || item.issue === "UNAVAILABLE" || item.issue === "OUT_OF_STOCK"}
+                      onChange={(q) => mutate(item.id, () => updateCartItem(item.id, q))}
                     />
                   </div>
-                  <div className="flex flex-col justify-center">
-                    <h3 className="font-heading text-lg text-charcoal">
-                      {item.product.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 font-body mt-1">
-                      Size: {item.variant}
-                    </p>
-                    {/* Mobile Price */}
-                    <p className="md:hidden text-charcoal font-body mt-2">
-                      {formatPrice(item.product.basePrice)}
-                    </p>
+
+                  <div className="hidden md:flex col-span-2 justify-end items-center gap-4">
+                    <span className="text-charcoal font-medium">{formatPrice(item.lineTotal)}</span>
                     <button
-                      onClick={() => removeItem(index)}
-                      className="md:hidden text-sm text-gray-400 hover:text-wine flex items-center gap-1 mt-3 w-fit transition-colors"
+                      onClick={() => mutate(item.id, () => removeCartItem(item.id))}
+                      className="text-gray-400 hover:text-wine transition-colors"
+                      aria-label={`Remove ${item.product.name}`}
                     >
-                      <X className="w-4 h-4" /> Remove
+                      {busy ? <Spinner className="w-5 h-5" /> : <X className="w-5 h-5" />}
                     </button>
                   </div>
-                </div>
-
-                {/* Desktop Price */}
-                <div className="hidden md:block col-span-2 text-center font-body text-charcoal">
-                  {formatPrice(item.product.basePrice)}
-                </div>
-
-                {/* Quantity */}
-                <div className="col-span-1 md:col-span-2 flex items-center justify-start md:justify-center">
-                  <div className="flex items-center border border-gray-300 rounded-sm">
-                    <button
-                      onClick={() => updateQuantity(index, item.quantity - 1)}
-                      className="p-2 text-gray-500 hover:text-wine hover:bg-gray-50 transition-colors"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="w-8 text-center font-body text-charcoal">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(index, item.quantity + 1)}
-                      className="p-2 text-gray-500 hover:text-wine hover:bg-gray-50 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Subtotal & Desktop Remove */}
-                <div className="hidden md:flex col-span-2 justify-end items-center gap-4">
-                  <span className="font-body text-charcoal font-medium">
-                    {formatPrice(item.product.basePrice * item.quantity)}
-                  </span>
-                  <button
-                    onClick={() => removeItem(index)}
-                    className="text-gray-400 hover:text-wine transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        {/* Order Summary */}
-        <div className="w-full lg:w-96 flex-shrink-0">
-          <div className="bg-cream p-6 border border-gray-200">
-            <h2 className="font-heading text-2xl text-charcoal mb-6">
-              Order Summary
-            </h2>
-            
-            <div className="space-y-4 font-body text-sm mb-6">
+        <aside className="w-full lg:w-96 flex-shrink-0">
+          <div className="bg-cream p-6 border border-gold/20 lg:sticky lg:top-28">
+            <h2 className="font-heading text-2xl text-charcoal mb-6">Order Summary</h2>
+
+            <dl className="space-y-3 text-sm mb-6">
               <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span className="text-charcoal font-medium">{formatPrice(subtotal)}</span>
+                <dt>Subtotal ({s.itemCount} {s.itemCount === 1 ? "item" : "items"})</dt>
+                <dd className="text-charcoal font-medium">{formatPrice(s.subtotal)}</dd>
               </div>
-              {discount > 0 && (
+              {s.savings > 0 && (
+                <div className="flex justify-between text-green-700">
+                  <dt>You save on MRP</dt>
+                  <dd>{formatPrice(s.savings)}</dd>
+                </div>
+              )}
+              {s.couponCode && !s.couponError && (
                 <div className="flex justify-between text-wine">
-                  <span>Discount</span>
-                  <span>-{formatPrice(discount)}</span>
+                  <dt>Coupon ({s.couponCode})</dt>
+                  <dd>−{formatPrice(s.couponDiscount)}</dd>
                 </div>
               )}
               <div className="flex justify-between text-gray-600">
-                <span>Shipping</span>
-                <span className="text-charcoal">Calculated at checkout</span>
+                <dt>Shipping</dt>
+                <dd className="text-charcoal">{s.shippingFee > 0 ? formatPrice(s.shippingFee) : "Free"}</dd>
               </div>
-            </div>
+            </dl>
 
             <div className="mb-6">
-              <label htmlFor="coupon" className="block text-xs uppercase tracking-wider text-gray-500 mb-2 font-body">
-                Gift Card or Discount Code
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  id="coupon"
-                  className="flex-grow border border-gray-300 px-3 py-2 font-body text-sm focus:outline-none focus:border-wine bg-white"
-                  placeholder="Enter code"
-                />
-                <button className="bg-gray-900 text-white px-4 py-2 font-body text-sm uppercase tracking-wider hover:bg-wine transition-colors">
-                  Apply
-                </button>
-              </div>
+              {s.couponCode ? (
+                <div className={cn("flex items-center justify-between gap-3 border px-3 py-2 text-sm bg-white", s.couponError ? "border-red-300" : "border-green-300")}>
+                  <span className="flex items-center gap-2">
+                    <Tag className={cn("w-4 h-4", s.couponError ? "text-red-500" : "text-green-600")} />
+                    <span>
+                      <b>{s.couponCode}</b>
+                      {s.couponError ? <span className="block text-xs text-red-600">{s.couponError}</span> : <span className="text-green-700"> applied</span>}
+                    </span>
+                  </span>
+                  <button
+                    onClick={async () => {
+                      setCouponBusy(true);
+                      try {
+                        await removeCoupon();
+                      } catch (error) {
+                        toast(errorMessage(error), "error");
+                      } finally {
+                        setCouponBusy(false);
+                      }
+                    }}
+                    disabled={couponBusy}
+                    className="text-xs underline text-gray-500 hover:text-wine"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={submitCoupon}>
+                  <label htmlFor="coupon" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                    Discount code
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="coupon"
+                      value={code}
+                      onChange={(e) => {
+                        setCode(e.target.value.toUpperCase());
+                        setCouponError(null);
+                      }}
+                      className="flex-grow min-w-0 border border-gray-300 px-3 py-2 text-sm uppercase focus:outline-none focus:border-wine bg-white"
+                      placeholder="Enter code"
+                      aria-invalid={Boolean(couponError)}
+                      aria-describedby={couponError ? "coupon-error" : undefined}
+                    />
+                    <button
+                      disabled={couponBusy || !code.trim()}
+                      className="bg-charcoal text-white px-4 py-2 text-sm uppercase tracking-wider hover:bg-wine transition-colors disabled:opacity-50"
+                    >
+                      {couponBusy ? "…" : "Apply"}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p id="coupon-error" className="text-xs text-red-600 mt-2">
+                      {couponError}
+                    </p>
+                  )}
+                </form>
+              )}
             </div>
 
-            <div className="border-t border-gray-300 pt-4 mb-6">
+            <div className="border-t border-gold/30 pt-4 mb-6">
               <div className="flex justify-between items-center">
                 <span className="font-heading text-xl text-charcoal">Total</span>
-                <span className="font-heading text-2xl text-charcoal font-semibold">
-                  {formatPrice(total)}
-                </span>
+                <span className="font-heading text-2xl text-charcoal font-semibold">{formatPrice(s.total)}</span>
               </div>
-              <p className="text-xs text-gray-500 font-body mt-1 text-right">
-                Including taxes
-              </p>
+              <p className="text-xs text-gray-500 mt-1 text-right">Inclusive of all taxes</p>
             </div>
 
+            {cart.hasIssues ? (
+              <p className="text-sm text-red-600 mb-4 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> Please update the highlighted items before checking out.
+              </p>
+            ) : null}
             <Link
               href="/checkout"
-              className="block w-full bg-wine text-white text-center py-4 font-body text-sm uppercase tracking-wider hover:bg-wine/90 transition-colors mb-4"
+              aria-disabled={cart.hasIssues}
+              onClick={(e) => cart.hasIssues && e.preventDefault()}
+              className={cn(
+                "block w-full bg-wine text-white text-center py-4 text-sm uppercase tracking-wider hover:bg-wine/90 transition-colors mb-4",
+                cart.hasIssues && "opacity-50 cursor-not-allowed"
+              )}
             >
               Proceed to Checkout
             </Link>
-
-            <Link
-              href="/shop"
-              className="block w-full text-center text-charcoal font-body text-sm underline hover:text-wine transition-colors"
-            >
+            <Link href="/shop" className="block w-full text-center text-charcoal text-sm underline hover:text-wine transition-colors">
               Continue Shopping
             </Link>
           </div>
-        </div>
+        </aside>
       </div>
+    </div>
+  );
+}
+
+function QuantityControl({ quantity, max, disabled, onChange }: { quantity: number; max: number; disabled?: boolean; onChange: (q: number) => void }) {
+  return (
+    <div className="flex items-center border border-gray-300 bg-white">
+      <button
+        onClick={() => onChange(quantity - 1)}
+        disabled={disabled || quantity <= 1}
+        className="p-2 text-gray-500 hover:text-wine disabled:opacity-30"
+        aria-label="Decrease quantity"
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+      <span className="w-8 text-center text-charcoal" aria-live="polite">
+        {quantity}
+      </span>
+      <button
+        onClick={() => onChange(quantity + 1)}
+        disabled={disabled || quantity >= max}
+        className="p-2 text-gray-500 hover:text-wine disabled:opacity-30"
+        aria-label="Increase quantity"
+      >
+        <Plus className="w-4 h-4" />
+      </button>
     </div>
   );
 }
