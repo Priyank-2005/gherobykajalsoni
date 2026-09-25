@@ -16,6 +16,8 @@ export default function ShippingPolicyPage() {
       <h1 className="font-heading text-4xl text-charcoal mb-8">Shipping Policy</h1>
 
       <div className="prose prose-lg prose-p:font-body prose-headings:font-heading prose-a:text-wine max-w-none text-gray-700">
+        <p className="text-sm text-gray-500 mb-8">Last updated: September 25, 2026</p>
+
         <h2>Processing Time</h2>
         <p>
           All orders for ready-to-wear items are processed within 2-3 business days. Custom orders or made-to-measure items take between 15-20 business days to process and stitch before they are dispatched.

@@ -70,7 +70,7 @@ System Requirements Document
 The public website structure is defined as follows:
 - `/` (Homepage): The main landing page, visually rich.
 - `/shop`: Full product listing with filters and sorting.
-- `/category/[slug]`: Products filtered by a specific category.
+- `/category/[slug]`: Products filtered by a specific category. Optional `?sub=<subcategory-slug>` narrows to a subcategory.
 - `/product/[slug]`: Detailed product view.
 - `/search`: Search results page.
 - `/cart`: Shopping cart summary and modifications.
@@ -163,9 +163,22 @@ The homepage must contain 7 distinct, admin-manageable sections:
 - **Conditions**: Minimum cart value requirement, maximum discount cap for percentage types.
 - **Validation**: Unique codes, strict server-side validation during cart calculation and checkout.
 
+## 17a. Category & Subcategory Taxonomy
+Two levels only. A subcategory is a flat label that belongs to exactly one category and is managed inside that category's admin form (not a separate tree). When adding a product, admin picks a category (required) and then optionally one of that category's subcategories.
+
+Initial list supplied by the client:
+- **Sarees**: Gaji Silk, Banarasi, Bandhej, Organza, Designer Sarees
+- **Suits**: 3-Piece Suits, Anarkali, Designer Suits, Festive Suits
+- **Lehengas**: Bridal Lehengas, Designer Lehengas, Sider Lehengas
+- **Dresses / Custom Outfits**: (no subcategories)
+- **Jewellery**: Imitation Jewellery, One-Gram Jewellery, Two-Gram Jewellery, Rental Jewellery
+- **Bridal & Wedding**: Bridal Outfits, Bridal Jewellery, Wedding Accessories
+
+Storefront: header dropdown per category, subcategory chips on the category page, subcategory in product breadcrumb/card label.
+
 ## 18. Admin Panel Requirements
 - **Dashboard**: Key metrics (orders, revenue, customers, total products, low stock alerts, recent activity).
-- **Product Management**: Full CRUD operations. Cloudinary integration for images/videos. Manage variants, pricing, inventory, categories, descriptions, fabrics, care instructions, bestseller/new arrival flags, and publish status.
+- **Product Management**: Full CRUD operations. Cloudinary integration for images/videos. Manage variants, pricing, inventory, category + optional subcategory, descriptions, fabrics, care instructions, bestseller/new arrival flags, and publish status.
 - **Order Management**: List, search, filter, and sort orders. Full order detail view, status updates, tracking URL management, and print invoice feature.
 - **Customer Management**: List customers with details, link to their profiles, order history, and total spending.
 - **Coupon Management**: Full CRUD with all coupon condition fields.
@@ -226,7 +239,7 @@ The homepage must contain 7 distinct, admin-manageable sections:
 ## 27. Database Schema
 Expected entities and relationships (PostgreSQL + Prisma):
 - `User`, `Role` (Enum: ADMIN, CUSTOMER), `Session`, `Address`
-- `Product`, `ProductVariant`, `Category`, `ProductImage`, `ProductVideo`
+- `Product`, `ProductVariant`, `Category`, `Subcategory`, `ProductImage`, `ProductVideo`
 - `Cart`, `CartItem`
 - `Order`, `OrderItem`, `Payment`
 - `Coupon`, `CouponUsage`

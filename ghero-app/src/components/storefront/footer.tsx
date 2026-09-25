@@ -1,8 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { ExternalLink, Heart, Mail, Phone } from 'lucide-react';
+import type { CategoryWithSubcategories } from '@/types/product';
 
-export function Footer() {
+export function Footer({ categories }: { categories: CategoryWithSubcategories[] }) {
   return (
     <footer className="border-t border-baby-pink-deep/50 pt-16 pb-8 font-body">
       <div className="container mx-auto px-4 md:px-6">
@@ -53,17 +54,10 @@ export function Footer() {
           <div className="col-span-1">
             <h3 className="font-heading text-lg text-gold mb-5 border-b border-gold/30 pb-2 inline-block">Categories</h3>
             <ul className="space-y-3">
-              {[
-                { label: 'Sarees', slug: 'sarees' },
-                { label: 'Lehengas', slug: 'lehengas' },
-                { label: 'Kurtis', slug: 'kurtis' },
-                { label: 'Anarkalis', slug: 'anarkalis' },
-                { label: 'Suits', slug: 'suits' },
-                { label: 'Dupattas', slug: 'dupattas' },
-              ].map((item) => (
-                <li key={item.label}>
+              {categories.map((item) => (
+                <li key={item.id}>
                   <Link href={`/category/${item.slug}`} className="text-sm text-charcoal/70 hover:text-gold transition-colors">
-                    {item.label}
+                    {item.name}
                   </Link>
                 </li>
               ))}
@@ -89,13 +83,13 @@ export function Footer() {
               ))}
             </ul>
             <div className="space-y-3">
-              <a href="mailto:hello@ghero.com" className="flex items-center gap-3 text-sm text-charcoal/70 hover:text-gold transition-colors">
+              <a href="mailto:gherobykajalsoni@gmail.com" className="flex items-center gap-3 text-sm text-charcoal/70 hover:text-gold transition-colors">
                 <Mail className="w-4 h-4 text-gold" />
-                hello@ghero.com
+                gherobykajalsoni@gmail.com
               </a>
-              <a href="tel:+919876543210" className="flex items-center gap-3 text-sm text-charcoal/70 hover:text-gold transition-colors">
+              <a href="tel:+919166880664" className="flex items-center gap-3 text-sm text-charcoal/70 hover:text-gold transition-colors">
                 <Phone className="w-4 h-4 text-gold" />
-                +91 98765 43210
+                +91 91668 80664
               </a>
             </div>
           </div>

@@ -1,11 +1,20 @@
 import { z } from "zod";
+import { addressSchema } from "./address";
 
 /**
- * User profile validation schemas.
+ * User profile validation schemas. Email changes go through a separate OTP flow.
  */
 export const updateProfileSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100).optional(),
-  phone: z.string().min(10).max(10).regex(/^[6-9]\d{9}$/, "Please enter a valid Indian phone number").optional(),
+  name: z.string().trim().min(1, "Name is required").max(100).optional(),
+  phone: addressSchema.shape.phone.optional(),
+});
+
+export const requestEmailChangeSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Please enter a valid email address"),
+});
+
+export const confirmEmailChangeSchema = requestEmailChangeSchema.extend({
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

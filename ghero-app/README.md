@@ -52,15 +52,15 @@ Edit `.env` and fill in all required values. See [Environment Variables](#enviro
 ### 4. Set up the database
 
 ```bash
-# Generate Prisma client
-npx prisma generate
+# Apply migrations (creates tables in the database from GHERO_DATABASE_URL / DIRECT_URL)
+npm run db:migrate
 
-# Run database migrations
-npx prisma migrate dev --name init
-
-# Seed with development data
-npx prisma db seed
+# Load the catalog (6 categories, 19 subcategories, sample products), homepage content,
+# sample coupons (WELCOME10, FLAT500) and the admin user from ADMIN_EMAIL. Safe to re-run.
+npm run db:seed
 ```
+
+To sign in as admin, go to `/login` with the `ADMIN_EMAIL` address. Until SMTP is configured, one-time codes are printed in the dev-server console instead of being emailed.
 
 ### 5. Start the development server
 
@@ -74,7 +74,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | ✅ |
+| `GHERO_DATABASE_URL` | PostgreSQL connection string (pooled). Deliberately not `DATABASE_URL`, so a machine-wide variable can't override it | ✅ |
+| `DIRECT_URL` | Direct (non-pooled) connection used by Prisma Migrate | ✅ |
 | `NEXT_PUBLIC_APP_URL` | Application URL (e.g., `http://localhost:3000`) | ✅ |
 | `NEXT_PUBLIC_APP_NAME` | Brand name displayed on the site | ✅ |
 | `SESSION_SECRET` | Secret for signing session cookies | ✅ |
@@ -125,6 +126,13 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 3. Get Access Token and Phone Number ID
 4. Create message templates in Meta Business Manager
 5. Set `WHATSAPP_ENABLED=true` in `.env`
+
+## Notes for local development
+
+- **Remote database latency.** With the Neon database in `us-east-1`, every query is roughly a 220 ms round-trip from India. For production, create the database in `ap-south-1` (Mumbai) and deploy the app in the same region.
+- **Open the dev site at `http://localhost:3000`**, not `127.0.0.1`. Next.js 16 blocks dev assets from other origins, so the page won't hydrate.
+- **Without Razorpay keys** checkout still creates the order and shows a "payment not switched on yet" notice; customers can pay later from their order page.
+- **API reference:** see [`docs/API_CONTRACTS.md`](../docs/API_CONTRACTS.md).
 
 ## Project Structure
 

@@ -1,27 +1,23 @@
 import { z } from "zod";
+import { addressSchema } from "./address";
 
 /**
- * Checkout validation schemas.
+ * Checkout validation. Email is not taken from the form: the order uses the verified
+ * email of the signed-in user (the OTP gate at checkout guarantees one).
  */
-export const checkoutSchema = z.object({
-  // If user has saved addresses, they can select one
-  addressId: z.string().optional(),
-
-  // Or provide a new address
-  address: z.object({
-    fullName: z.string().min(1, "Full name is required").max(100),
-    phone: z.string().min(10, "Phone number must be 10 digits").max(10).regex(/^[6-9]\d{9}$/, "Please enter a valid Indian phone number"),
-    addressLine1: z.string().min(1, "Address is required").max(200),
-    addressLine2: z.string().max(200).optional(),
-    area: z.string().min(1, "Area is required").max(100),
-    city: z.string().min(1, "City is required").max(100),
-    state: z.string().min(1, "State is required").max(100),
-    pincode: z.string().length(6, "Pincode must be 6 digits").regex(/^[1-9][0-9]{5}$/, "Please enter a valid pincode"),
-    country: z.string().default("India"),
-  }).optional(),
-}).refine(
-  (data) => data.addressId || data.address,
-  { message: "Either select a saved address or provide a new one" }
-);
+export const checkoutSchema = z
+  .object({
+    // Unique per checkout attempt (client generates once per page load); makes "Place order" retry-safe.
+    idempotencyKey: z.string().min(16).max(100),
+    // Either pick a saved address...
+    addressId: z.string().optional(),
+    // ...or provide a new one.
+    address: addressSchema.omit({ isDefault: true }).optional(),
+    saveAddress: z.boolean().optional().default(true),
+  })
+  .refine((data) => data.addressId || data.address, {
+    message: "Please select a saved address or enter a new one",
+    path: ["address"],
+  });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

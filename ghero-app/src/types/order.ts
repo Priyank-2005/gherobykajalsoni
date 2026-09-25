@@ -5,8 +5,11 @@ export interface OrderSummary {
   id: string;
   orderNumber: string;
   status: OrderStatusType;
+  paymentStatus: PaymentStatusType;
   total: number;
   itemCount: number;
+  itemsSummary: string;
+  imageUrl: string | null;
   createdAt: string;
   trackingUrl: string | null;
 }
@@ -19,6 +22,7 @@ export interface OrderDetail {
   discount: number;
   couponCode: string | null;
   couponDiscount: number;
+  shippingFee: number;
   total: number;
   trackingUrl: string | null;
   createdAt: string;
@@ -58,8 +62,17 @@ export interface OrderPaymentInfo {
   razorpayPaymentId: string | null;
   amount: number;
   currency: string;
-  status: string;
+  status: PaymentStatusType;
 }
+
+export type PaymentStatusType = "PENDING" | "CAPTURED" | "FAILED" | "REFUNDED";
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatusType, string> = {
+  PENDING: "Awaiting payment",
+  CAPTURED: "Paid",
+  FAILED: "Payment failed",
+  REFUNDED: "Refunded",
+};
 
 export type OrderStatusType =
   | "PENDING_PAYMENT"

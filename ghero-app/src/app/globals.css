@@ -7,12 +7,13 @@
 
 :root {
   /* Primary palette */
-  --color-baby-pink: #FDE8EF;
-  --color-baby-pink-light: #FFF0F5;
-  --color-baby-pink-deep: #F8D0DD;
+  /* Client asked for a slightly darker pink (was #FFF0F5 / #FDE8EF / #F8D0DD) */
+  --color-baby-pink: #F7D6E0;
+  --color-baby-pink-light: #FBE1E9;
+  --color-baby-pink-deep: #EFBFCE;
   --color-ivory: #FAF8F5;
-  --color-cream: #FDE8EF;
-  --color-blush: #F8D0DD;
+  --color-cream: #F7D6E0;
+  --color-blush: #EFBFCE;
   --color-rose: #D4A89A;
   --color-muted-rose: #C48B7C;
   --color-wine: #722F37;
@@ -133,4 +134,12 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-gold);
+}
+
+/* Horizontal scrollers (chips, reels, account nav): scrollable but no visible bar */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }

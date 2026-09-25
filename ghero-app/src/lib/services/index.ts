@@ -8,7 +8,7 @@
  * Services:
  * - auth.service.ts       → OTP, sessions, user creation
  * - product.service.ts    → Product CRUD, listing, filtering
- * - category.service.ts   → Category CRUD
+ * - category.service.ts   → Category + inline subcategory CRUD
  * - cart.service.ts       → Cart operations, pricing
  * - checkout.service.ts   → Checkout flow orchestration
  * - order.service.ts      → Order CRUD, status management
@@ -21,7 +21,8 @@
  * - homepage.service.ts   → Homepage CMS operations
  * - user.service.ts       → User profile management
  * - address.service.ts    → Address CRUD
+ * - notification.service.ts → Order email/WhatsApp fan-out (idempotent)
  */
 
-// Services will be implemented in Phase 3+
-// Each service is imported directly where needed
+// Each service is imported directly where needed (no barrel re-exports, to keep
+// server-only code out of client bundles).

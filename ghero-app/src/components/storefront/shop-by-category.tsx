@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { DUMMY_CATEGORIES } from "@/lib/dummy-data";
+import type { HomepageData } from "@/lib/services/homepage.service";
 
 const container = {
   hidden: { opacity: 0 },
@@ -20,8 +20,8 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
 
-export default function ShopByCategory() {
-  const categories = DUMMY_CATEGORIES.slice(0, 6);
+export default function ShopByCategory({ categories }: { categories: HomepageData["categories"] }) {
+  if (categories.length === 0) return null;
 
   return (
     <section className="py-16 md:py-24 border-t border-baby-pink-deep/50">
@@ -40,11 +40,12 @@ export default function ShopByCategory() {
         >
           {categories.map((category) => (
             <motion.div key={category.id} variants={item}>
-              <Link href={`/category/${category.slug}`} className="group block relative aspect-[3/4] overflow-hidden rounded-md bg-baby-pink">
+              <Link href={category.link} className="group block relative aspect-[3/4] overflow-hidden rounded-md bg-baby-pink">
                 <Image
-                  src={category.image}
+                  src={category.imageUrl}
                   alt={category.name}
                   fill
+                  sizes="(max-width: 768px) 50vw, 33vw"
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-transparent to-transparent opacity-80" />

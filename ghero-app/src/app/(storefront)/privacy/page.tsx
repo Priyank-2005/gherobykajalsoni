@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       <h1 className="font-heading text-4xl text-charcoal mb-8">Privacy Policy</h1>
 
       <div className="prose prose-lg prose-p:font-body prose-headings:font-heading prose-a:text-wine max-w-none text-gray-700">
-        <p className="text-sm text-gray-500 mb-8">Last updated: October 1, 2023</p>
+        <p className="text-sm text-gray-500 mb-8">Last updated: September 25, 2026</p>
 
         <h2>1. Introduction</h2>
         <p>
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
 
         <h2>5. Contact Us</h2>
         <p>
-          If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:privacy@gherobykajalsoni.com">privacy@gherobykajalsoni.com</a>.
+          If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:gherobykajalsoni@gmail.com">gherobykajalsoni@gmail.com</a>.
         </p>
       </div>
     </div>

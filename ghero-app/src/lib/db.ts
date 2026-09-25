@@ -12,6 +12,9 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    // The DB may be a remote region (e.g. Neon us-east-1 from India, ~250ms/round-trip);
+    // the 5s default is too tight for multi-step order/payment transactions.
+    transactionOptions: { maxWait: 10_000, timeout: 20_000 },
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
