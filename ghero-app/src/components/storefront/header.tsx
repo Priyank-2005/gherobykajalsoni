@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, ShoppingBag, Menu, X } from 'lucide-react';
+import { Search, User, ShoppingBag, Menu, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from './store-provider';
 import type { CategoryWithSubcategories } from '@/types/product';
@@ -71,9 +71,16 @@ export function Header({ categories }: { categories: CategoryWithSubcategories[]
               <div key={cat.id} className="relative group">
                 <Link
                   href={`/category/${cat.slug}`}
-                  className="block py-2 text-sm font-medium text-gold hover:text-wine group-hover:text-wine transition-colors uppercase tracking-wider whitespace-nowrap"
+                  aria-haspopup={cat.subcategories.length > 0 ? 'true' : undefined}
+                  className="flex items-center gap-1 py-2 text-sm font-medium text-gold hover:text-wine group-hover:text-wine transition-colors uppercase tracking-wider whitespace-nowrap"
                 >
                   {cat.name}
+                  {cat.subcategories.length > 0 && (
+                    <ChevronDown
+                      aria-hidden
+                      className="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180"
+                    />
+                  )}
                 </Link>
                 {cat.subcategories.length > 0 && (
                   <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity duration-200">

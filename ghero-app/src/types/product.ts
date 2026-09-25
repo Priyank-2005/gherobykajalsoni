@@ -99,6 +99,8 @@ export interface ProductFilters {
 
 export interface ProductFacets {
   categories: { slug: string; name: string; count: number }[];
+  /** Subcategories of the selected category (empty when no category is selected). */
+  subcategories: { slug: string; name: string; count: number }[];
   sizes: string[];
   colors: { name: string; hex: string }[];
   priceRange: { min: number; max: number };

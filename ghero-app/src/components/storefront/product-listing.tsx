@@ -13,7 +13,7 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PRODUCT_SORT_OPTIONS, type ProductListResponse } from "@/types/product";
 
-const FILTER_KEYS = ["category", "minPrice", "maxPrice", "sizes", "colors", "inStock", "minDiscount"] as const;
+const FILTER_KEYS = ["category", "sub", "minPrice", "maxPrice", "sizes", "colors", "inStock", "minDiscount"] as const;
 
 /**
  * Product grid + filters + sort + pagination, all driven by the URL query string.
@@ -32,6 +32,7 @@ export function ProductListing({ data, lockedCategory = false }: { data: Product
   const num = (k: string) => (params.get(k) ? Number(params.get(k)) : undefined);
   const values: FilterValues = {
     categories: params.get("category") ?? undefined,
+    sub: params.get("sub") ?? undefined,
     minPrice: num("minPrice"),
     maxPrice: num("maxPrice"),
     sizes: csv("sizes"),
@@ -53,7 +54,8 @@ export function ProductListing({ data, lockedCategory = false }: { data: Product
     const set = (k: string, v: string | undefined) => (v ? next.set(k, v) : next.delete(k));
     if (!lockedCategory) {
       set("category", merged.categories);
-      if ("categories" in patch) next.delete("sub"); // subcategory belongs to the old category
+      // A subcategory belongs to one category: changing the category clears it.
+      set("sub", "categories" in patch ? undefined : merged.sub);
     }
     set("minPrice", merged.minPrice?.toString());
     set("maxPrice", merged.maxPrice?.toString());
@@ -66,7 +68,7 @@ export function ProductListing({ data, lockedCategory = false }: { data: Product
 
   const clearFilters = () => {
     const next = new URLSearchParams(params);
-    for (const k of FILTER_KEYS) if (!(lockedCategory && k === "category")) next.delete(k);
+    for (const k of FILTER_KEYS) if (!(lockedCategory && (k === "category" || k === "sub"))) next.delete(k);
     navigate(next);
   };
 
@@ -86,7 +88,7 @@ export function ProductListing({ data, lockedCategory = false }: { data: Product
   };
 
   const activeCount =
-    (lockedCategory ? 0 : values.categories ? 1 : 0) +
+    (lockedCategory ? 0 : (values.categories ? 1 : 0) + (values.sub ? 1 : 0)) +
     (values.minPrice !== undefined || values.maxPrice !== undefined ? 1 : 0) +
     values.sizes.length +
     values.colors.length +

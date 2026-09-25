@@ -90,8 +90,27 @@ function filterWhere(query: ProductQuery): Prisma.ProductWhereInput {
   return { AND: and };
 }
 
-async function facetsFor(scope: Prisma.ProductWhereInput): Promise<ProductFacets> {
-  const [products, variants] = await Promise.all([
+/** Subcategories of the selected category, counted within the scope but ignoring the chosen subcategory. */
+async function subcategoryFacets(query: ProductQuery) {
+  if (!query.category) return [];
+  const [subs, counts] = await Promise.all([
+    prisma.subcategory.findMany({
+      where: { isVisible: true, category: { slug: query.category, isVisible: true } },
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      select: { id: true, slug: true, name: true },
+    }),
+    prisma.product.groupBy({
+      by: ["subcategoryId"],
+      where: scopeWhere({ ...query, sub: undefined }),
+      _count: true,
+    }),
+  ]);
+  const byId = new Map(counts.map((c) => [c.subcategoryId, c._count]));
+  return subs.map((s) => ({ slug: s.slug, name: s.name, count: byId.get(s.id) ?? 0 }));
+}
+
+async function facetsFor(scope: Prisma.ProductWhereInput, query: ProductQuery): Promise<ProductFacets> {
+  const [products, variants, subcategories] = await Promise.all([
     prisma.product.findMany({
       where: scope,
       select: { basePrice: true, category: { select: { slug: true, name: true, displayOrder: true } } },
@@ -100,6 +119,7 @@ async function facetsFor(scope: Prisma.ProductWhereInput): Promise<ProductFacets
       where: { product: scope },
       select: { size: true, color: true, colorHex: true },
     }),
+    subcategoryFacets(query),
   ]);
 
   const categories = new Map<string, { slug: string; name: string; count: number; order: number }>();
@@ -125,6 +145,7 @@ async function facetsFor(scope: Prisma.ProductWhereInput): Promise<ProductFacets
     categories: [...categories.values()]
       .sort((a, b) => a.order - b.order)
       .map(({ slug, name, count }) => ({ slug, name, count })),
+    subcategories,
     sizes,
     colors: [...colors.entries()].map(([name, hex]) => ({ name, hex })),
     priceRange: { min: products.length ? min : 0, max },
@@ -169,7 +190,7 @@ export async function listProducts(query: ProductQuery): Promise<ProductListResp
       where: filterWhere(query),
       select: { id: true, basePrice: true, baseMrp: true, createdAt: true, isBestseller: true, isNewArrival: true },
     }),
-    facetsFor(scopeWhere(query)),
+    facetsFor(scopeWhere(query), query),
   ]);
 
   let withDiscount = rows.map((r) => ({
