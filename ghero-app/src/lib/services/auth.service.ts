@@ -12,6 +12,11 @@ import { sendOtpEmail } from "./email.service";
  */
 
 export async function sendOtp(email: string) {
+  // Admin accounts sign in with email + password at /admin/login only; an emailed code
+  // must never be a second way into an admin session.
+  const admin = await prisma.user.findFirst({ where: { email, role: "ADMIN" }, select: { id: true } });
+  if (admin) throw badRequest("This is an admin account. Please sign in at /admin/login.", "ADMIN_ACCOUNT");
+
   const now = Date.now();
   const recent = await prisma.otpVerification.findMany({
     where: { email, createdAt: { gte: new Date(now - 60 * 60 * 1000) } },
@@ -109,6 +114,7 @@ export async function verifyOtpAndGetUser(
   await consumeOtp(email, otp);
 
   const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing?.role === "ADMIN") throw badRequest("This is an admin account. Please sign in at /admin/login.", "ADMIN_ACCOUNT");
   if (existing) {
     const fill: { name?: string; phone?: string } = {};
     if (!existing.name && profile?.name) fill.name = profile.name;

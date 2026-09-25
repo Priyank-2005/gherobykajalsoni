@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { httpUrl } from "@/lib/validations/common";
+import { mediaSrc } from "@/lib/validations/common";
 import { ok, parseBody } from "@/lib/api";
 import { adminRoute } from "@/lib/admin-api";
 import { addProductMedia, reorderProductImages } from "@/lib/services/product.service";
@@ -8,10 +8,10 @@ type Ctx = { params: Promise<{ id: string }> };
 
 const addSchema = z.object({
   kind: z.enum(["image", "video"]),
-  url: httpUrl,
+  url: mediaSrc,
   cloudinaryId: z.string().min(1),
   alt: z.string().max(200).optional(),
-  thumbnail: httpUrl.optional(),
+  thumbnail: mediaSrc.optional(),
 });
 
 /** Attach an uploaded asset (from POST /api/admin/media) to the product. */

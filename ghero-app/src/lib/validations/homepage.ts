@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { linkOrPath } from "./common";
+import { linkOrPath, mediaSrc } from "./common";
 
 // Internal path ("/shop") or absolute http(s) URL. Blocks javascript:/data: links.
 const link = linkOrPath;
@@ -7,7 +7,7 @@ const link = linkOrPath;
 const optionalLink = link.optional().nullable();
 const order = z.number().int().min(0).optional();
 const visible = z.boolean().optional();
-const mediaUrl = linkOrPath;
+const mediaUrl = mediaSrc;
 
 export const heroSchema = z.object({
   imageUrl: mediaUrl,

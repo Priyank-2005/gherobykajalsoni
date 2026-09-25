@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { httpUrl } from "@/lib/validations/common";
+import { mediaSrc } from "@/lib/validations/common";
 import { ok, parseBody } from "@/lib/api";
 import { adminRoute } from "@/lib/admin-api";
 import { updateCategorySchema } from "@/lib/validations/category";
@@ -19,7 +19,7 @@ export const PUT = adminRoute(async (request: Request, ctx: Ctx) => {
 });
 
 const imageSchema = z.object({
-  image: z.object({ url: httpUrl, cloudinaryId: z.string().min(1) }).nullable(),
+  image: z.object({ url: mediaSrc, cloudinaryId: z.string().min(1) }).nullable(),
 });
 
 /** Set/clear the category image (upload first via /api/admin/media). */

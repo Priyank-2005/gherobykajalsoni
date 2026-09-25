@@ -17,3 +17,22 @@ export const linkOrPath = z
   .trim()
   .max(2000)
   .refine((v) => /^\/(?!\/)/.test(v) || /^https?:\/\//i.test(v), "Link must start with / or http(s)://");
+
+/**
+ * Image/video source that next/image can render: a site path ("/images/...") or an https URL on an
+ * allowed media host (keep in sync with images.remotePatterns in next.config.ts).
+ */
+const MEDIA_HOSTS = ["res.cloudinary.com", "images.unsplash.com"];
+export const mediaSrc = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((v) => {
+    if (/^\/(?!\/)/.test(v)) return true;
+    try {
+      const u = new URL(v);
+      return u.protocol === "https:" && MEDIA_HOSTS.includes(u.hostname);
+    } catch {
+      return false;
+    }
+  }, "Upload the file, or use a site path like /images/...");

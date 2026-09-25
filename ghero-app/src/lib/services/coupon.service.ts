@@ -1,11 +1,10 @@
-import type { Coupon, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import type { Coupon } from "@prisma/client";
+import { prisma, type Db } from "@/lib/db";
 import { badRequest, notFound } from "@/lib/api";
 import { fromPaise, toNumber, toPaise } from "@/lib/money";
 import { formatPrice } from "@/lib/utils";
 import type { CreateCouponInput, UpdateCouponInput } from "@/lib/validations/coupon";
 
-type Db = Prisma.TransactionClient | typeof prisma;
 
 export interface CouponContext {
   subtotalPaise: number; // selling-price total
