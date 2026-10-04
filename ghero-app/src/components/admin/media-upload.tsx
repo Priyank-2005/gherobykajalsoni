@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
-import { ApiError, errorMessage } from "@/lib/api-client";
+import { ApiError, api, errorMessage } from "@/lib/api-client";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
@@ -17,19 +17,51 @@ export type UploadKind =
 
 export type UploadedMedia = { url: string; cloudinaryId: string; resourceType: "image" | "video" };
 
-async function upload(file: File, kind: UploadKind): Promise<UploadedMedia> {
-  const form = new FormData();
-  form.set("file", file);
-  form.set("kind", kind);
-  const res = await fetch("/api/admin/media", { method: "POST", body: form });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.error ?? "Upload failed", data.code);
-  return data.media;
+const MB = 1024 * 1024;
+// Cloudinary's limit for a single (non-chunked) upload on our plan.
+const MAX_VIDEO_BYTES = 100 * MB;
+
+/** Upload to Cloudinary from the browser, reporting progress (0-100). */
+function sendToCloudinary(url: string, form: FormData, onProgress: (pct: number) => void) {
+  return new Promise<Record<string, unknown>>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
+    xhr.onload = () => {
+      let data: Record<string, unknown> = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        // fall through to the generic message
+      }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new ApiError(xhr.status, (data.error as { message?: string } | undefined)?.message ?? "Upload to Cloudinary failed. Please try again."));
+    };
+    xhr.onerror = () => reject(new ApiError(0, "Network error while uploading. Please check your connection and try again."));
+    xhr.send(form);
+  });
 }
 
 /**
- * File picker that uploads to Cloudinary via the server (which validates type/size/content)
- * and hands back { url, cloudinaryId }. Supports multiple files.
+ * Three steps: our server signs the upload, the browser sends the file straight to
+ * Cloudinary (so large videos never hit our server's body-size limits), and our server
+ * verifies the result before it can be used.
+ */
+async function upload(file: File, kind: UploadKind, onProgress: (pct: number) => void): Promise<UploadedMedia> {
+  const resourceType = file.type.startsWith("video/") ? "video" : "image";
+  if (resourceType === "video" && file.size > MAX_VIDEO_BYTES) throw new ApiError(400, `Video is too large (${Math.round(file.size / MB)} MB). Maximum is 100 MB; please compress it first.`);
+  const signed = await api<{ uploadUrl: string; fields: Record<string, string | number> }>("/api/admin/media/sign", { body: { kind, resourceType, bytes: file.size } });
+  const form = new FormData();
+  for (const [k, v] of Object.entries(signed.fields)) form.set(k, String(v));
+  form.set("file", file);
+  const result = await sendToCloudinary(signed.uploadUrl, form, onProgress);
+  const { media } = await api<{ media: UploadedMedia }>("/api/admin/media", { body: { kind, result } });
+  return media;
+}
+
+/**
+ * File picker that uploads to Cloudinary (signed and verified by our server) and hands back
+ * { url, cloudinaryId }. Supports multiple files.
  */
 export function MediaUpload({
   kind,
@@ -55,8 +87,9 @@ export function MediaUpload({
     const list = Array.from(files);
     try {
       for (const [i, file] of list.entries()) {
-        setProgress(list.length > 1 ? `Uploading ${i + 1}/${list.length}…` : "Uploading…");
-        await onUploaded(await upload(file, kind));
+        const prefix = list.length > 1 ? `Uploading ${i + 1}/${list.length}` : "Uploading";
+        setProgress(`${prefix}…`);
+        await onUploaded(await upload(file, kind, (pct) => setProgress(`${prefix} ${pct}%`)));
       }
       toast(list.length > 1 ? `${list.length} files uploaded` : "Uploaded");
     } catch (error) {

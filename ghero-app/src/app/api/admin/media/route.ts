@@ -1,19 +1,25 @@
-import { badRequest, ok } from "@/lib/api";
+import { z } from "zod";
+import { ok, parseBody } from "@/lib/api";
 import { adminRoute } from "@/lib/admin-api";
 import { uploadPresets } from "@/lib/cloudinary";
-import { uploadMedia, type UploadKind } from "@/lib/services/media.service";
+import { verifyUpload, type UploadKind } from "@/lib/services/media.service";
+
+const schema = z.object({
+  kind: z.enum(Object.keys(uploadPresets) as [UploadKind, ...UploadKind[]]),
+  result: z.object({
+    public_id: z.string().min(1).max(300),
+    version: z.number().int(),
+    signature: z.string().min(1).max(100),
+    resource_type: z.string().max(20),
+  }),
+});
 
 /**
- * Multipart upload: fields `file` and `kind` (productImage | productVideo | categoryImage |
- * heroImage | heroMobileImage | reelMedia | testimonialImage). Returns { url, cloudinaryId },
- * which is then attached to a product/category/CMS item via its own endpoint.
+ * Step 2 of an upload: verify what the browser uploaded to Cloudinary (signed response,
+ * folder, type, size). Returns { url, cloudinaryId, resourceType }, which is then attached
+ * to a product / category / CMS item via its own endpoint.
  */
 export const POST = adminRoute(async (request: Request) => {
-  const form = await request.formData().catch(() => null);
-  if (!form) throw badRequest("Expected multipart/form-data");
-  const file = form.get("file");
-  const kind = String(form.get("kind") ?? "");
-  if (!(file instanceof File)) throw badRequest("Missing file");
-  if (!(kind in uploadPresets)) throw badRequest("Invalid upload kind");
-  return ok({ media: await uploadMedia(file, kind as UploadKind) }, { status: 201 });
+  const { kind, result } = await parseBody(request, schema);
+  return ok({ media: await verifyUpload(kind, result) }, { status: 201 });
 });

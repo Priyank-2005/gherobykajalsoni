@@ -13,44 +13,15 @@ cloudinary.config({
 export { cloudinary };
 
 /**
- * Upload options for different media types.
+ * Cloudinary folder for each kind of upload. Size / type rules and image resizing are in
+ * services/media.service.ts (uploads go from the browser straight to Cloudinary, signed by us).
  */
 export const uploadPresets = {
-  productImage: {
-    folder: "ghero/products",
-    transformation: [
-      { width: 1200, height: 1600, crop: "limit", quality: "auto:good" },
-    ],
-  },
-  productVideo: {
-    folder: "ghero/videos",
-    resource_type: "video" as const,
-  },
-  categoryImage: {
-    folder: "ghero/categories",
-    transformation: [
-      { width: 800, height: 800, crop: "fill", quality: "auto:good" },
-    ],
-  },
-  heroImage: {
-    folder: "ghero/hero",
-    transformation: [
-      { width: 1920, height: 1080, crop: "limit", quality: "auto:good" },
-    ],
-  },
-  heroMobileImage: {
-    folder: "ghero/hero",
-    transformation: [
-      { width: 768, height: 1024, crop: "limit", quality: "auto:good" },
-    ],
-  },
-  reelMedia: {
-    folder: "ghero/reels",
-  },
-  testimonialImage: {
-    folder: "ghero/testimonials",
-    transformation: [
-      { width: 200, height: 200, crop: "fill", quality: "auto:good" },
-    ],
-  },
+  productImage: { folder: "ghero/products" },
+  productVideo: { folder: "ghero/videos" },
+  categoryImage: { folder: "ghero/categories" },
+  heroImage: { folder: "ghero/hero" },
+  heroMobileImage: { folder: "ghero/hero" },
+  reelMedia: { folder: "ghero/reels" },
+  testimonialImage: { folder: "ghero/testimonials" },
 } as const;
