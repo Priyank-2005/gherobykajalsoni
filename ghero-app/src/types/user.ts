@@ -6,7 +6,7 @@ export interface UserPublic {
   email: string;
   name: string | null;
   phone: string | null;
-  role: "CUSTOMER" | "ADMIN";
+  role: "CUSTOMER" | "ADMIN" | "MANAGER" | "CASHIER";
 }
 
 export interface UserProfile extends UserPublic {

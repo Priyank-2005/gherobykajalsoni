@@ -2,21 +2,53 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { adminDashboard } from "@/lib/services/order.service";
 import { lowStockVariants } from "@/lib/services/inventory.service";
-import { Card, OrderStatusBadge, PageHeader, Stat, TableWrap, td, th } from "@/components/admin/ui";
+import { dashboardPosCards } from "@/lib/services/reports.service";
+import { getOpenRegister, registerSummary } from "@/lib/services/register.service";
+import { Card, OrderStatusBadge, PageHeader, Pill, Stat, TableWrap, td, th } from "@/components/admin/ui";
 import { formatDate, formatPrice } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function AdminDashboardPage() {
-  const [{ metrics: m, recentOrders, recentCustomers }, lowStock] = await Promise.all([adminDashboard(), lowStockVariants()]);
+  const [{ metrics: m, recentOrders, recentCustomers }, lowStock, pos, register] = await Promise.all([
+    adminDashboard(),
+    lowStockVariants(),
+    dashboardPosCards(),
+    getOpenRegister(),
+  ]);
+  const drawer = register ? await registerSummary(register.id) : null;
 
   return (
     <>
       <PageHeader title="Dashboard" description="Overview of your store" />
 
+      {pos.refundNeeded.length > 0 && (
+        <Card title="Paid online but out of stock: refund or restock needed" className="mb-4 border-red-300">
+          <p className="text-sm text-gray-600 mb-3">
+            These customers paid after the last piece was sold (often in the shop at the same moment). Refund them in Razorpay, or restock and ship.
+          </p>
+          <ul className="divide-y divide-gray-100 text-sm">
+            {pos.refundNeeded.map((o) => (
+              <li key={o.id} className="flex justify-between gap-3 py-2">
+                <Link href={`/admin/orders/${o.id}`} className="font-medium hover:text-wine">{o.orderNumber}</Link>
+                <span className="text-gray-600 truncate">{o.shippingName}</span>
+                <span className="tabular-nums">{formatPrice(o.total)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
+        <Stat label="Shop sales today" value={formatPrice(pos.today.shop.sales)} hint={`${pos.today.shop.bills} bill${pos.today.shop.bills === 1 ? "" : "s"}`} href="/admin/orders?channel=POS" />
+        <Stat label="Website sales today" value={formatPrice(pos.today.online.sales)} hint={`${pos.today.online.orders} order${pos.today.online.orders === 1 ? "" : "s"}`} href="/admin/orders?channel=ONLINE" />
+        <Stat label="Cash in drawer" value={drawer ? formatPrice(drawer.expectedCash) : "Closed"} hint={drawer ? `Day open · ${drawer.billCount} bills` : "Open the day in the POS"} />
+        <Stat label="Reports" value="View" hint="Shop + website, by day, category, staff" href="/admin/reports" />
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <Stat label="Revenue" value={formatPrice(m.totalRevenue)} hint="Paid orders, excl. cancelled" />
-        <Stat label="Orders" value={m.totalOrders} href="/admin/orders" />
+        <Stat label="Online orders" value={m.totalOrders} href="/admin/orders?channel=ONLINE" />
         <Stat label="Customers" value={m.totalCustomers} href="/admin/customers" />
         <Stat label="Products" value={m.totalProducts} hint={`${m.publishedProducts} published`} href="/admin/products" />
       </div>
@@ -79,7 +111,9 @@ export default async function AdminDashboardPage() {
                     {o.customerName}
                     <div className="text-xs text-gray-400">{o.customerEmail}</div>
                   </td>
-                  <td className={td}><OrderStatusBadge status={o.status} /></td>
+                  <td className={td}>
+                    {o.channel === "POS" ? (o.status === "CANCELLED" ? <OrderStatusBadge status={o.status} /> : <Pill tone="gold">Shop bill</Pill>) : <OrderStatusBadge status={o.status} />}
+                  </td>
                   <td className={`${td} text-right tabular-nums`}>{formatPrice(o.total)}</td>
                 </tr>
               ))}
@@ -98,7 +132,7 @@ export default async function AdminDashboardPage() {
               <Link key={c.id} href={`/admin/customers/${c.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 text-sm">
                 <span className="min-w-0">
                   <span className="block truncate">{c.name ?? "—"}</span>
-                  <span className="block text-xs text-gray-400 truncate">{c.email}</span>
+                  <span className="block text-xs text-gray-400 truncate">{c.email ?? c.phone}</span>
                 </span>
                 <span className="text-xs text-gray-400 shrink-0">{formatDate(c.createdAt)}</span>
               </Link>

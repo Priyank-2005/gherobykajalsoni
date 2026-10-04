@@ -24,7 +24,7 @@ export default async function ProfilePage() {
           </div>
         ))}
       </div>
-      <ProfileForm profile={{ name: profile.name ?? "", phone: profile.phone ?? "", email: profile.email }} />
+      <ProfileForm profile={{ name: profile.name ?? "", phone: profile.phone ?? "", email: profile.email ?? "" }} />
     </div>
   );
 }

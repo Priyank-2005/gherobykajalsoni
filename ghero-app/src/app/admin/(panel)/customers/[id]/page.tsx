@@ -20,7 +20,7 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <PageHeader back={{ href: "/admin/customers", label: "Customers" }} title={customer.name ?? customer.email} description={`Customer since ${formatDate(customer.createdAt)}`} />
+      <PageHeader back={{ href: "/admin/customers", label: "Customers" }} title={customer.name ?? customer.email ?? customer.phone ?? "Customer"} description={`Customer since ${formatDate(customer.createdAt)}`} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Stat label="Paid orders" value={paid.length} />
@@ -68,7 +68,7 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
           <Card title="Profile">
             <dl className="text-sm space-y-2">
               <div><dt className="text-gray-500 text-xs">Name</dt><dd>{customer.name ?? "—"}</dd></div>
-              <div><dt className="text-gray-500 text-xs">Email</dt><dd className="break-all"><a href={`mailto:${customer.email}`} className="hover:text-wine">{customer.email}</a></dd></div>
+              <div><dt className="text-gray-500 text-xs">Email</dt><dd className="break-all">{customer.email ? <a href={`mailto:${customer.email}`} className="hover:text-wine">{customer.email}</a> : "—"}</dd></div>
               <div><dt className="text-gray-500 text-xs">Phone</dt><dd>{customer.phone ? <a href={`tel:+91${customer.phone}`} className="hover:text-wine">{customer.phone}</a> : "—"}</dd></div>
             </dl>
           </Card>

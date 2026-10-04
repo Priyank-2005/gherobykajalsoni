@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { AppError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { adminGetOrder } from "@/lib/services/order.service";
+import { getBill } from "@/lib/services/pos-bill.service";
+import { formatStoreAddress, getStoreSettings } from "@/lib/services/store-settings.service";
+import { BillDocument } from "@/components/pos/bill-document";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { PrintButton } from "./print-button";
 
@@ -23,6 +26,19 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     if (e instanceof AppError && e.status === 404) notFound();
     throw e;
   });
+
+  if (order.channel === "POS") {
+    const [bill, s] = await Promise.all([getBill(order.id), getStoreSettings()]);
+    return (
+      <div className="min-h-screen bg-gray-100 print:bg-white py-8 print:py-0">
+        <div className="max-w-3xl mx-auto mb-4 flex justify-end gap-2 px-4 print:hidden">
+          <PrintButton />
+        </div>
+        <BillDocument bill={bill} store={{ storeName: s.storeName, address: formatStoreAddress(s), phone: s.phone, email: s.email, gstin: s.gstin, billFooter: s.billFooter }} />
+        <style>{`@page { size: A4; margin: 12mm; }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 print:bg-white py-8 print:py-0">

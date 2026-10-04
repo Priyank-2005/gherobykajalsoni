@@ -84,6 +84,8 @@ export function isValidPincode(pincode: string): boolean {
  */
 export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("en-IN", {
+    // The store is in India; servers (e.g. Vercel) run in UTC.
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -95,6 +97,7 @@ export function formatDate(date: Date | string): string {
  */
 export function formatDateTime(date: Date | string): string {
   return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "short",
     year: "numeric",

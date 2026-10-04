@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { cache } from "react";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import type { Role } from "@prisma/client";
 import { prisma } from "./db";
 import { forbidden, unauthorized } from "./api";
 
@@ -72,7 +73,7 @@ export type SessionUser = {
   email: string;
   name: string | null;
   phone: string | null;
-  role: "CUSTOMER" | "ADMIN";
+  role: Role;
 };
 
 /**
@@ -93,7 +94,11 @@ export const getSession = cache(async (): Promise<{ sessionId: string; user: Ses
   });
 
   if (!session || session.expiresAt < new Date()) return null;
-  return { sessionId: session.id, user: session.user };
+  // Website sessions come from email OTP / admin password sign-in, so the account has an email;
+  // phone-only shop customers (email null) can't hold one.
+  const { email } = session.user;
+  if (!email) return null;
+  return { sessionId: session.id, user: { ...session.user, email } };
 });
 
 /** Destroy the current session (logout). Route Handler / Server Function only. */

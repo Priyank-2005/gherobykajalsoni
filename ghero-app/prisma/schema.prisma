@@ -21,7 +21,30 @@ datasource db {
 
 enum Role {
   CUSTOMER
-  ADMIN
+  ADMIN // the owner: full admin panel + POS
+  MANAGER // POS staff: billing, cancellations, receive stock, labels, larger discounts
+  CASHIER // POS staff: billing within their discount limit
+}
+
+enum OrderChannel {
+  ONLINE
+  POS // billed at the shop counter
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+}
+
+// Why a variant's stock changed. Every stock change writes one StockMovement row.
+enum StockReason {
+  INITIAL // stock set when a variant was created
+  ONLINE_SALE
+  POS_SALE
+  RECEIVED // new stock arrived (POS "Receive stock")
+  ADJUSTMENT // manual correction with a note (damaged, gift, sample, lost, found, admin edit)
+  CANCEL // a cancelled order/bill put stock back
 }
 
 enum OrderStatus {
@@ -56,24 +79,135 @@ enum CouponApplyOn {
 
 model User {
   id           String   @id @default(cuid())
-  email        String   @unique
+  // Optional: shop customers may give only a phone number. Online accounts always have one
+  // (sign-in is by email OTP), so only phone-only shop customers have none.
+  email        String?  @unique
   name         String?
-  phone        String?
+  // 10-digit mobile, normalised (no +91 / spaces). Unique: the shop finds customers by phone.
+  phone        String?  @unique
   role         Role     @default(CUSTOMER)
-  // bcrypt hash; only set for ADMIN accounts (admins sign in with email + password, not OTP)
+  // bcrypt hash; set for ADMIN accounts and for MANAGERs allowed to register POS devices
   passwordHash String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  sessions     Session[]
-  addresses    Address[]
-  orders       Order[]
-  cart         Cart?
-  couponUsages CouponUsage[]
+  sessions          Session[]
+  addresses         Address[]
+  orders            Order[]
+  cart              Cart?
+  couponUsages      CouponUsage[]
+  staffProfile      StaffProfile?
+  posSessions       PosSession[]
+  registeredDevices PosDevice[]       @relation("DeviceRegisteredBy")
+  billsAsCashier    Order[]           @relation("OrderCashier")
+  stockMovements    StockMovement[]
+  registersOpened   RegisterSession[] @relation("RegisterOpenedBy")
+  registersClosed   RegisterSession[] @relation("RegisterClosedBy")
 
   @@index([email])
   @@index([role])
   @@index([createdAt])
+}
+
+// ============================================
+// POS STAFF & DEVICES
+// ============================================
+
+// POS settings for a staff member (role MANAGER / CASHIER, or the ADMIN owner).
+model StaffProfile {
+  userId             String    @id
+  pinHash            String // bcrypt of a 4-6 digit PIN
+  maxDiscountPercent Int       @default(10) // manual discount allowed without a manager's PIN
+  isActive           Boolean   @default(true)
+  failedPinAttempts  Int       @default(0) // counted in the DB: in-memory limits don't work on serverless
+  lockedUntil        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A phone / tablet / computer registered for the POS by the owner or a manager (email + password).
+// Staff PINs are only accepted on a registered device, so a PIN alone is useless elsewhere.
+model PosDevice {
+  id             String    @id @default(cuid())
+  name           String
+  tokenHash      String    @unique // SHA-256 of the device cookie; the raw token is never stored
+  registeredById String
+  lastSeenAt     DateTime  @default(now())
+  revokedAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  registeredBy User         @relation("DeviceRegisteredBy", fields: [registeredById], references: [id])
+  sessions     PosSession[]
+
+  @@index([registeredById])
+}
+
+// A staff member signed in on a POS device. Separate from the website Session (own cookie),
+// so a cashier PIN never replaces the owner's admin-panel session in the same browser.
+model PosSession {
+  id           String   @id // SHA-256 of the cookie token
+  userId       String
+  deviceId     String
+  lastActiveAt DateTime @default(now()) // idle timeout (auto-lock) is enforced from this
+  expiresAt    DateTime
+
+  createdAt DateTime @default(now())
+
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device PosDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([expiresAt])
+}
+
+// One cash drawer for the shop: at most one open session at a time (enforced in register.service).
+model RegisterSession {
+  id           String    @id @default(cuid())
+  openedById   String
+  openingCash  Decimal   @db.Decimal(10, 2)
+  openedAt     DateTime  @default(now())
+  closedById   String?
+  closedAt     DateTime?
+  expectedCash Decimal?  @db.Decimal(10, 2) // opening + cash taken on bills not cancelled
+  countedCash  Decimal?  @db.Decimal(10, 2)
+  difference   Decimal?  @db.Decimal(10, 2) // counted - expected
+  note         String?
+
+  openedBy User    @relation("RegisterOpenedBy", fields: [openedById], references: [id])
+  closedBy User?   @relation("RegisterClosedBy", fields: [closedById], references: [id])
+  orders   Order[]
+
+  @@index([closedAt])
+  @@index([openedAt])
+}
+
+// Store details printed on bills. Single row with id "store".
+model StoreSettings {
+  id            String  @id @default("store")
+  storeName     String  @default("Ghero by Kajal Soni")
+  addressLine   String  @default("")
+  city          String  @default("")
+  state         String  @default("")
+  pincode       String  @default("")
+  phone         String  @default("")
+  email         String  @default("")
+  gstin         String?
+  billFooter    String  @default("Prices are inclusive of all taxes. Thank you for shopping with us!")
+  upiId         String? // shown as a payment QR with the exact amount when set
+  invoicePrefix String  @default("GHS")
+
+  updatedAt DateTime @updatedAt
+}
+
+// Gap-free shop bill numbers per series, e.g. "GHS/26-27" -> 1, 2, 3 …
+model InvoiceCounter {
+  series     String @id
+  lastNumber Int    @default(0)
 }
 
 model Session {
@@ -175,25 +309,25 @@ model Subcategory {
 }
 
 model Product {
-  id               String  @id @default(cuid())
-  name             String
-  slug             String  @unique
-  description      String? @db.Text
-  fabric           String?
-  careInstructions String? @db.Text
-  sizeGuide        String? @db.Text
-  categoryId       String
-  subcategoryId    String? // must belong to categoryId (enforced in product service)
-  basePrice        Decimal @db.Decimal(10, 2)
-  baseMrp          Decimal @db.Decimal(10, 2)
-  isBestseller     Boolean @default(false)
-  isNewArrival     Boolean @default(false)
+  id                     String  @id @default(cuid())
+  name                   String
+  slug                   String  @unique
+  description            String? @db.Text
+  fabric                 String?
+  careInstructions       String? @db.Text
+  sizeGuide              String? @db.Text
+  categoryId             String
+  subcategoryId          String? // must belong to categoryId (enforced in product service)
+  basePrice              Decimal @db.Decimal(10, 2)
+  baseMrp                Decimal @db.Decimal(10, 2)
+  isBestseller           Boolean @default(false)
+  isNewArrival           Boolean @default(false)
   // "Viral Products" homepage section: an influencer reel that links to this product.
   // When isViral is true a viral video is required (enforced in product service).
   isViral                Boolean @default(false)
   viralVideoUrl          String?
   viralVideoCloudinaryId String?
-  isPublished      Boolean @default(false)
+  isPublished            Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -227,17 +361,59 @@ model ProductVariant {
   mrp         Decimal @db.Decimal(10, 2)
   stock       Int     @default(0)
   isAvailable Boolean @default(true)
+  // 8-digit number printed as a Code 128 barcode on price tags. Assigned by the database from
+  // barcode_seq (starts at 20000001), so it is never reused, even after a variant is deleted.
+  barcode     String  @unique @default(dbgenerated("(nextval('barcode_seq'::regclass))::text"))
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  cartItems  CartItem[]
-  orderItems OrderItem[]
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  supplierCodes  VariantBarcode[]
+  stockMovements StockMovement[]
 
   @@index([productId])
   @@index([sku])
   @@index([isAvailable])
+}
+
+// Extra codes that also identify a variant at the POS, e.g. a supplier's EAN/UPC on bought-in stock.
+model VariantBarcode {
+  id        String @id @default(cuid())
+  code      String @unique
+  variantId String
+
+  createdAt DateTime @default(now())
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
+}
+
+// Stock history: one row per change, written in the same transaction as the change itself.
+model StockMovement {
+  id          String      @id @default(cuid())
+  variantId   String? // null once the variant is deleted; sku/productName keep the history readable
+  sku         String
+  productName String
+  delta       Int // + in, - out
+  stockAfter  Int
+  reason      StockReason
+  orderId     String? // the sale / cancelled order behind this movement
+  userId      String? // who did it (null for automatic online sales)
+  note        String?
+
+  createdAt DateTime @default(now())
+
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  user    User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([variantId, createdAt])
+  @@index([reason])
+  @@index([createdAt])
+  @@index([orderId])
 }
 
 model ProductImage {
@@ -346,17 +522,53 @@ model Order {
   trackingUrl String?
   notes       String? // admin/system notes, e.g. payment or stock problems needing review
 
+  // In-store (POS) bills. orderNumber holds the bill number (e.g. GHS/26-27/00001) and the
+  // shipping* snapshot holds the customer's name/phone/email with the shop's address (handed over
+  // at the counter), so every existing order screen keeps working for shop bills.
+  // POS total = subtotal - couponDiscount - manualDiscount + roundOff
+  channel           OrderChannel @default(ONLINE)
+  manualDiscount    Decimal      @default(0) @db.Decimal(10, 2) // line + bill discounts given at the counter
+  roundOff          Decimal      @default(0) @db.Decimal(10, 2)
+  cashierId         String?
+  approvedById      String? // manager whose PIN approved a discount above the cashier's limit
+  registerSessionId String?
+  cancelledById     String?
+  cancelledAt       DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User        @relation(fields: [userId], references: [id])
-  items   OrderItem[]
-  payment Payment?
+  user            User             @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  payment         Payment?
+  payments        OrderPayment[]
+  cashier         User?            @relation("OrderCashier", fields: [cashierId], references: [id])
+  registerSession RegisterSession? @relation(fields: [registerSessionId], references: [id])
 
   @@index([userId])
   @@index([orderNumber])
   @@index([status])
   @@index([createdAt])
+  @@index([channel, createdAt])
+  @@index([registerSessionId])
+}
+
+// Shop payments for a POS bill; several rows = split payment (e.g. part UPI, rest cash).
+// Online orders use Payment (Razorpay) instead.
+model OrderPayment {
+  id        String        @id @default(cuid())
+  orderId   String
+  method    PaymentMethod
+  amount    Decimal       @db.Decimal(10, 2) // amount applied to the bill
+  tendered  Decimal?      @db.Decimal(10, 2) // cash handed over (change = tendered - amount)
+  reference String? // UPI / card reference noted by staff
+
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([method])
 }
 
 model OrderItem {
@@ -366,15 +578,16 @@ model OrderItem {
   productId String?
 
   // Immutable product snapshot at time of purchase
-  productName String
-  productSlug String
-  sku         String
-  size        String?
-  color       String?
-  quantity    Int
-  unitPrice   Decimal @db.Decimal(10, 2)
-  unitMrp     Decimal @db.Decimal(10, 2)
-  imageUrl    String? // Snapshot of first product image
+  productName  String
+  productSlug  String
+  sku          String
+  size         String?
+  color        String?
+  quantity     Int
+  unitPrice    Decimal @db.Decimal(10, 2)
+  unitMrp      Decimal @db.Decimal(10, 2)
+  lineDiscount Decimal @default(0) @db.Decimal(10, 2) // POS: discount on this whole line (not per unit)
+  imageUrl     String? // Snapshot of first product image
 
   createdAt DateTime @default(now())
 

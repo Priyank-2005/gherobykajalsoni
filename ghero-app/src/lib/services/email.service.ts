@@ -172,3 +172,110 @@ export async function sendContactMessage(msg: { name: string; email: string; pho
   await deliver(to, `Website enquiry from ${msg.name}`, html, `From ${msg.email}: ${msg.message.slice(0, 80)}`, msg.email);
   await prisma.emailEvent.create({ data: { eventType: "CONTACT", recipient: to, metadata: { from: msg.email } } });
 }
+
+// ---------------------------------------------------------------------------
+// Shop (POS) bills and day-end summary
+// ---------------------------------------------------------------------------
+
+type PosBillForEmail = {
+  id: string;
+  billNumber: string;
+  createdAt: string;
+  customer: { name: string | null };
+  items: { name: string; size: string | null; color: string | null; quantity: number; lineTotal: number }[];
+  subtotal: number;
+  couponDiscount: number;
+  manualDiscount: number;
+  roundOff: number;
+  total: number;
+  payments: { method: string; amount: number }[];
+};
+
+type StoreForEmail = { storeName: string; address: string; phone: string; billFooter: string };
+
+function posBillHtml(bill: PosBillForEmail, store: StoreForEmail) {
+  const row = (label: string, value: string, bold = false) =>
+    `<tr><td style="padding:4px 0;font-size:14px${bold ? ";font-weight:bold" : ""}">${label}</td><td align="right" style="font-size:14px${bold ? ";font-weight:bold" : ""}">${value}</td></tr>`;
+  const items = bill.items
+    .map((i) =>
+      row(
+        `${escapeHtml(i.name)}${i.size || i.color ? ` <span style="color:#888">(${escapeHtml([i.size, i.color].filter(Boolean).join(", "))})</span>` : ""} × ${i.quantity}`,
+        inr(i.lineTotal)
+      )
+    )
+    .join("");
+  const discounts = bill.couponDiscount + bill.manualDiscount;
+  const date = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }).format(new Date(bill.createdAt));
+  const name = escapeHtml(bill.customer.name?.split(" ")[0] || "there");
+  return layout(
+    "Thank you for shopping with us",
+    `<p style="font-size:14px;line-height:1.6">Hi ${name}, here is your bill <b>${escapeHtml(bill.billNumber)}</b> from ${escapeHtml(store.storeName)} (${date}).</p>
+     <table width="100%" style="margin:16px 0;border-top:1px solid #eee;border-bottom:1px solid #eee">${items}
+       ${discounts > 0 ? row("Discount", `− ${inr(discounts)}`) : ""}
+       ${bill.roundOff ? row("Round off", `${bill.roundOff > 0 ? "+" : "−"} ${inr(Math.abs(bill.roundOff))}`) : ""}
+       ${row("Total paid", inr(bill.total), true)}
+       ${row("Paid by", escapeHtml(bill.payments.map((p) => `${p.method === "CASH" ? "Cash" : p.method === "UPI" ? "UPI" : "Card"} ${inr(p.amount)}`).join(" + ")))}
+     </table>
+     <p style="font-size:12px;color:#888;line-height:1.6">${escapeHtml(store.billFooter)}<br>${escapeHtml(store.address)}${store.phone ? ` · ${escapeHtml(store.phone)}` : ""}</p>`
+  );
+}
+
+/**
+ * Email a shop bill. Automatic sends are idempotent per bill (EmailEvent "POS_BILL");
+ * a manual resend (`resend: true`) is always sent and logged without the per-order lock.
+ * Failures are recorded and swallowed: email must never break billing.
+ */
+export async function sendPosBillEmail(to: string, bill: PosBillForEmail, store: StoreForEmail, options: { resend?: boolean } = {}) {
+  const eventType = "POS_BILL";
+  if (!options.resend) {
+    try {
+      await prisma.emailEvent.create({ data: { eventType, recipient: to, orderId: bill.id, status: "PENDING" } });
+    } catch {
+      return; // already sent (or in flight) for this bill
+    }
+  }
+  try {
+    await deliver(to, `Your bill ${bill.billNumber} from ${store.storeName}`, posBillHtml(bill, store), `Bill ${bill.billNumber} ${inr(bill.total)}`);
+    if (options.resend) await prisma.emailEvent.create({ data: { eventType: "POS_BILL_RESEND", recipient: to, metadata: { orderId: bill.id } } });
+    else await prisma.emailEvent.update({ where: { eventType_orderId: { eventType, orderId: bill.id } }, data: { status: "SENT" } });
+  } catch (error) {
+    console.error(`[email] bill ${bill.billNumber} failed:`, error);
+    if (options.resend) throw error;
+    await prisma.emailEvent
+      .update({ where: { eventType_orderId: { eventType, orderId: bill.id } }, data: { status: "FAILED", metadata: { message: String(error) } } })
+      .catch(() => undefined);
+  }
+}
+
+/** Day-end summary to the owner when the register is closed. Never throws. */
+export async function sendDayCloseEmail(
+  to: string,
+  s: { openedAt: string; closedAt: string | null; billCount: number; cancelledCount: number; sales: number; discounts: number; cash: number; upi: number; card: number; openingCash: number; expectedCash: number; countedCash: number | null; difference: number | null; note: string | null; closedBy: string }
+) {
+  const row = (label: string, value: string) => `<tr><td style="padding:4px 0;font-size:14px">${label}</td><td align="right" style="font-size:14px">${value}</td></tr>`;
+  const day = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium" }).format(new Date(s.openedAt));
+  const diff = s.difference ?? 0;
+  const html = layout(
+    `Shop summary · ${day}`,
+    `<table width="100%" style="border-top:1px solid #eee;border-bottom:1px solid #eee;margin-bottom:16px">
+       ${row("Bills", `${s.billCount}${s.cancelledCount ? ` (+${s.cancelledCount} cancelled)` : ""}`)}
+       ${row("<b>Sales</b>", `<b>${inr(s.sales)}</b>`)}
+       ${row("Discounts given", inr(s.discounts))}
+       ${row("Cash", inr(s.cash))}${row("UPI", inr(s.upi))}${row("Card", inr(s.card))}
+     </table>
+     <table width="100%" style="border-bottom:1px solid #eee">
+       ${row("Opening cash", inr(s.openingCash))}
+       ${row("Expected in drawer", inr(s.expectedCash))}
+       ${row("Counted", s.countedCash === null ? "—" : inr(s.countedCash))}
+       ${row("Difference", diff === 0 ? "None" : `<span style="color:${diff < 0 ? "#b91c1c" : "#15803d"}">${diff > 0 ? "+" : "−"} ${inr(Math.abs(diff))}</span>`)}
+     </table>
+     ${s.note ? `<p style="font-size:13px;color:#555">Note: ${escapeHtml(s.note)}</p>` : ""}
+     <p style="font-size:12px;color:#888">Closed by ${escapeHtml(s.closedBy)}.</p>`
+  );
+  try {
+    await deliver(to, `Shop summary ${day}: ${inr(s.sales)} from ${s.billCount} bill${s.billCount === 1 ? "" : "s"}`, html, `Day close ${day}`);
+    await prisma.emailEvent.create({ data: { eventType: "POS_DAY_CLOSE", recipient: to } });
+  } catch (error) {
+    console.error("[email] day-close summary failed:", error);
+  }
+}

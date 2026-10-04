@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, Printer } from "lucide-react";
 import { AppError } from "@/lib/api";
 import { adminGetOrder } from "@/lib/services/order.service";
+import { getBill } from "@/lib/services/pos-bill.service";
+import { formatStoreAddress, getStoreSettings } from "@/lib/services/store-settings.service";
+import { BillDocument } from "@/components/pos/bill-document";
 import { Card, OrderStatusBadge, PageHeader, PaymentBadge } from "@/components/admin/ui";
 import { formatDateTime, formatPrice } from "@/lib/utils";
 import { OrderStatusForm } from "./status-form";
@@ -16,6 +19,32 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     if (e instanceof AppError && e.status === 404) notFound();
     throw e;
   });
+
+  if (order.channel === "POS") {
+    const [bill, s] = await Promise.all([getBill(order.id), getStoreSettings()]);
+    return (
+      <>
+        <PageHeader
+          back={{ href: "/admin/orders?channel=POS", label: "Orders" }}
+          title={`Shop bill ${order.orderNumber}`}
+          description={`Billed ${formatDateTime(order.createdAt)}${bill.cashier ? ` by ${bill.cashier}` : ""}`}
+          actions={
+            <>
+              {order.customer && (
+                <Link href={`/admin/customers/${order.customer.id}`} className="inline-flex items-center gap-2 border border-gray-300 bg-white rounded-md px-3 py-2 text-sm hover:border-wine">
+                  Customer history
+                </Link>
+              )}
+              <Link href={`/admin/invoice/${order.id}`} target="_blank" className="inline-flex items-center gap-2 border border-gray-300 bg-white rounded-md px-3 py-2 text-sm hover:border-wine">
+                <Printer className="w-4 h-4" /> Print bill
+              </Link>
+            </>
+          }
+        />
+        <BillDocument bill={bill} store={{ storeName: s.storeName, address: formatStoreAddress(s), phone: s.phone, email: s.email, gstin: s.gstin, billFooter: s.billFooter }} />
+      </>
+    );
+  }
 
   return (
     <>

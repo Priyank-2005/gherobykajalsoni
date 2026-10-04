@@ -26,11 +26,24 @@ export async function getProfile(userId: string) {
   };
 }
 
+/**
+ * Phone numbers are unique (the shop finds customers by phone). If the number belongs to a
+ * phone-only shop customer (no email, so never signed in online), that record is merged into
+ * this account so shop and online history show together.
+ */
 export async function updateProfile(userId: string, input: UpdateProfileInput) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: input,
-    select: { id: true, email: true, name: true, phone: true, role: true },
+  const select = { id: true, email: true, name: true, phone: true, role: true } as const;
+  if (!input.phone) return prisma.user.update({ where: { id: userId }, data: input, select });
+
+  return prisma.$transaction(async (tx) => {
+    const holder = await tx.user.findUnique({ where: { phone: input.phone }, select: { id: true, email: true, role: true } });
+    if (holder && holder.id !== userId) {
+      if (holder.email || holder.role !== "CUSTOMER") throw conflict("That phone number is linked to another account");
+      await tx.order.updateMany({ where: { userId: holder.id }, data: { userId } });
+      await tx.couponUsage.updateMany({ where: { userId: holder.id }, data: { userId } });
+      await tx.user.delete({ where: { id: holder.id } });
+    }
+    return tx.user.update({ where: { id: userId }, data: input, select });
   });
 }
 

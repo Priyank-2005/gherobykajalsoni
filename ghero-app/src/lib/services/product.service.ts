@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+import { applyStockDeltas } from "./inventory.service";
 import { badRequest, conflict, notFound } from "@/lib/api";
 import { toNumber } from "@/lib/money";
 import { calculateDiscount, slugify } from "@/lib/utils";
@@ -418,7 +420,7 @@ export async function adminGetProduct(id: string) {
     include: {
       category: true,
       subcategory: true,
-      variants: { orderBy: { createdAt: "asc" } },
+      variants: { orderBy: { createdAt: "asc" }, include: { supplierCodes: { orderBy: { createdAt: "asc" } } } },
       images: { orderBy: { displayOrder: "asc" } },
       videos: { orderBy: { displayOrder: "asc" } },
     },
@@ -494,13 +496,30 @@ export async function createVariant(productId: string, input: CreateVariantInput
   if (!(await prisma.product.findUnique({ where: { id: productId }, select: { id: true } }))) {
     throw notFound("Product not found");
   }
-  return prisma.productVariant.create({ data: { ...input, productId } });
+  const { stock, ...rest } = input;
+  const userId = (await getSession())?.user.id ?? null;
+  // Created at 0, then the opening stock goes through the stock history like any other change.
+  return prisma.$transaction(async (tx) => {
+    const variant = await tx.productVariant.create({ data: { ...rest, stock: 0, productId } });
+    if (stock > 0) await applyStockDeltas(tx, [{ variantId: variant.id, delta: stock }], { reason: "INITIAL", userId });
+    return tx.productVariant.findUniqueOrThrow({ where: { id: variant.id } });
+  });
 }
 
+/** Admin edit. A changed stock number is recorded in the stock history as an adjustment. */
 export async function updateVariant(productId: string, variantId: string, input: UpdateVariantInput) {
-  const variant = await prisma.productVariant.findFirst({ where: { id: variantId, productId } });
-  if (!variant) throw notFound("Variant not found");
-  return prisma.productVariant.update({ where: { id: variantId }, data: input });
+  const { stock, ...rest } = input;
+  const userId = (await getSession())?.user.id ?? null;
+  return prisma.$transaction(async (tx) => {
+    // Lock the row so a sale can't slip in between reading the stock and setting the new number.
+    const [current] = await tx.$queryRaw<{ stock: number }[]>`
+      SELECT stock FROM "ProductVariant" WHERE id = ${variantId} AND "productId" = ${productId} FOR UPDATE`;
+    if (!current) throw notFound("Variant not found");
+    if (stock !== undefined && stock !== current.stock) {
+      await applyStockDeltas(tx, [{ variantId, delta: stock - current.stock }], { reason: "ADJUSTMENT", userId, note: "Stock edited on the product page" });
+    }
+    return tx.productVariant.update({ where: { id: variantId }, data: rest });
+  });
 }
 
 export async function deleteVariant(productId: string, variantId: string) {

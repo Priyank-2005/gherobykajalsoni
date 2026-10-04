@@ -154,7 +154,9 @@ export function VariantsEditor({ productId, variants, defaults }: { productId: s
           </tr>
         </tbody>
       </table>
-      <p className="text-xs text-gray-500 mt-2">Tip: add one row per size (and colour). SKUs must be unique across the store.</p>
+      <p className="text-xs text-gray-500 mt-2">
+        Tip: add one row per size (and colour). SKUs must be unique across the store. Each row gets its own barcode for the shop. Stock is shared by the shop and the website; changes here are recorded in Stock history.
+      </p>
     </div>
   );
 }

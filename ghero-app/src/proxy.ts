@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE_NAME = "ghero_session"; // keep in sync with src/lib/auth.ts
+const POS_SESSION_COOKIE = "ghero_pos_session"; // keep in sync with src/lib/pos-auth.ts
 const PROTECTED_PAGES = ["/account", "/admin"];
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 // Server-to-server callers that don't send a browser Origin; they authenticate by signature.
@@ -9,8 +10,8 @@ const ORIGIN_EXEMPT = ["/api/payment/webhook"];
 /**
  * Runs before routes. Two cheap, optimistic checks:
  * 1. Protected pages without a session cookie redirect to their sign-in page
- *    (/admin/login for the admin panel, /login for accounts). The real session/role
- *    check happens in the page layouts and API handlers.
+ *    (/admin/login for the admin panel, /pos/login for the shop POS, /login for accounts).
+ *    The real session/role check happens in the page layouts and API handlers.
  * 2. CSRF defence in depth: mutating /api requests from a browser must come from our origin.
  */
 export function proxy(request: NextRequest) {
@@ -22,6 +23,15 @@ export function proxy(request: NextRequest) {
       if (origin && origin !== request.nextUrl.origin) {
         return NextResponse.json({ error: "Cross-origin request blocked", code: "BAD_ORIGIN" }, { status: 403 });
       }
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname === "/pos" || pathname.startsWith("/pos/")) {
+    if (pathname !== "/pos/login" && !request.cookies.has(POS_SESSION_COOKIE)) {
+      const login = new URL("/pos/login", request.url);
+      login.searchParams.set("next", `${pathname}${search}`);
+      return NextResponse.redirect(login);
     }
     return NextResponse.next();
   }
@@ -44,5 +54,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/account/:path*", "/admin/:path*"],
+  matcher: ["/api/:path*", "/account/:path*", "/admin/:path*", "/pos", "/pos/:path*"],
 };

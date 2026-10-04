@@ -1,0 +1,111 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api } from "@/lib/api-client";
+import type { CatalogVariant } from "@/types/pos";
+
+/**
+ * The product/barcode list kept on the device so scans resolve instantly, without a round trip
+ * to the (US-hosted) database. Loaded from localStorage first, then refreshed from the server
+ * on open, every few minutes and after each bill. The server re-checks prices and stock when
+ * a bill is saved, so a slightly old cache can never mis-charge.
+ */
+
+const CACHE_KEY = "ghero-pos-catalog-v1";
+const REFRESH_MS = 5 * 60_000;
+
+function readCache(): CatalogVariant[] {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as CatalogVariant[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function useCatalog() {
+  const [variants, setVariants] = useState<CatalogVariant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef<Promise<CatalogVariant[]> | null>(null);
+
+  const refresh = useCallback(() => {
+    inFlight.current ??= api<{ variants: CatalogVariant[] }>("/api/pos/catalog")
+      .then(({ variants: fresh }) => {
+        setVariants(fresh);
+        setError(null);
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(fresh));
+        } catch {
+          // storage full / blocked: the in-memory list still works
+        }
+        return fresh;
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Couldn't load products");
+        return [] as CatalogVariant[];
+      })
+      .finally(() => {
+        inFlight.current = null;
+        setLoading(false);
+      });
+    return inFlight.current;
+  }, []);
+
+  useEffect(() => {
+    const cached = readCache();
+    // Show the cached list straight away; the server copy replaces it moments later.
+    if (cached.length) queueMicrotask(() => setVariants((v) => (v.length ? v : cached)));
+    refresh();
+    const t = setInterval(refresh, REFRESH_MS);
+    return () => clearInterval(t);
+  }, [refresh]);
+
+  const byCode = useMemo(() => {
+    const map = new Map<string, CatalogVariant>();
+    for (const v of variants) {
+      map.set(v.barcode, v);
+      map.set(v.sku.toUpperCase(), v);
+      for (const c of v.codes) map.set(c, v);
+    }
+    return map;
+  }, [variants]);
+
+  const lookup = useCallback((code: string) => byCode.get(code.trim()) ?? byCode.get(code.trim().toUpperCase()) ?? null, [byCode]);
+
+  /** Name / SKU / colour search for when a tag is missing. */
+  const search = useCallback(
+    (q: string, limit = 8) => {
+      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+      if (!terms.length) return [];
+      return variants
+        .filter((v) => {
+          const hay = `${v.name} ${v.sku} ${v.size ?? ""} ${v.color ?? ""} ${v.barcode}`.toLowerCase();
+          return terms.every((t) => hay.includes(t));
+        })
+        .slice(0, limit);
+    },
+    [variants]
+  );
+
+  return { variants, loading, error, refresh, lookup, search };
+}
+
+/** Small JSON helpers for per-device conveniences (held bills, the bill in progress). */
+export function loadLocal<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function saveLocal(key: string, value: unknown) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore: private mode / storage full
+  }
+}

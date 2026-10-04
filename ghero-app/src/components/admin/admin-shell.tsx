@@ -12,6 +12,11 @@ import {
   TicketPercent,
   Home,
   LogOut,
+  Boxes,
+  BarChart3,
+  UserCog,
+  Settings,
+  Store,
   Menu,
   X,
   ExternalLink,
@@ -27,6 +32,10 @@ const NAV = [
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/coupons", label: "Coupons", icon: TicketPercent },
   { href: "/admin/homepage", label: "Homepage", icon: Home },
+  { href: "/admin/stock", label: "Stock history", icon: Boxes },
+  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
+  { href: "/admin/staff", label: "Staff & devices", icon: UserCog },
+  { href: "/admin/settings", label: "POS settings", icon: Settings },
 ];
 
 export function AdminShell({ user, children }: { user: { name: string | null; email: string }; children: React.ReactNode }) {
@@ -66,6 +75,9 @@ export function AdminShell({ user, children }: { user: { name: string | null; em
 
   const footer = (
     <div className="border-t border-gray-200 pt-4 space-y-1">
+      <Link href="/pos" target="_blank" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:text-charcoal rounded-md hover:bg-gray-100">
+        <Store className="w-4 h-4" /> Open POS
+      </Link>
       <Link href="/" target="_blank" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:text-charcoal rounded-md hover:bg-gray-100">
         <ExternalLink className="w-4 h-4" /> View store
       </Link>

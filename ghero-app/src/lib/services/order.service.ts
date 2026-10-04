@@ -1,4 +1,4 @@
-import type { OrderStatus, Prisma } from "@prisma/client";
+import type { OrderChannel, OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { badRequest, notFound } from "@/lib/api";
 import { toNumber } from "@/lib/money";
@@ -60,9 +60,16 @@ function toDetail(o: OrderWithDetail): OrderDetail {
           currency: o.payment.currency,
           status: o.payment.status,
         }
-      : null,
+      : o.channel === "POS"
+        ? // Shop bills are paid at the counter (cash / UPI / card), never through Razorpay.
+          { razorpayPaymentId: null, amount: toNumber(o.total), currency: "INR", status: "CAPTURED" }
+        : null,
   };
 }
+
+/** Payment status for lists: shop bills are always paid at the counter. */
+const paymentStatusOf = (o: { channel: "ONLINE" | "POS"; payment: { status: PaymentStatus } | null }): PaymentStatus =>
+  o.payment?.status ?? (o.channel === "POS" ? "CAPTURED" : "PENDING");
 
 // ---------------------------------------------------------------------------
 // Customer
@@ -81,7 +88,7 @@ export async function listUserOrders(userId: string): Promise<OrderSummary[]> {
     id: o.id,
     orderNumber: o.orderNumber,
     status: o.status,
-    paymentStatus: o.payment?.status ?? "PENDING",
+    paymentStatus: paymentStatusOf(o),
     total: toNumber(o.total),
     itemCount: o.items.reduce((s, i) => s + i.quantity, 0),
     itemsSummary: o.items.map((i) => i.productName).join(", "),
@@ -117,6 +124,7 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 export async function adminListOrders(params: {
   status?: OrderStatus;
+  channel?: OrderChannel;
   q?: string;
   page?: number;
   pageSize?: number;
@@ -127,6 +135,7 @@ export async function adminListOrders(params: {
   const q = params.q?.trim();
   const where: Prisma.OrderWhereInput = {
     ...(params.status ? { status: params.status } : {}),
+    ...(params.channel ? { channel: params.channel } : {}),
     ...(q
       ? {
           OR: [
@@ -165,13 +174,14 @@ export async function adminListOrders(params: {
     orders: orders.map((o) => ({
       id: o.id,
       orderNumber: o.orderNumber,
+      channel: o.channel,
       customerName: o.shippingName,
       customerEmail: o.shippingEmail,
       customerPhone: o.shippingPhone,
       total: toNumber(o.total),
       itemCount: o.items.reduce((s, i) => s + i.quantity, 0),
       status: o.status,
-      paymentStatus: o.payment?.status ?? "PENDING",
+      paymentStatus: paymentStatusOf(o),
       needsReview: Boolean(o.notes),
       createdAt: o.createdAt.toISOString(),
     })),
@@ -186,10 +196,12 @@ export async function adminGetOrder(id: string) {
   if (!order) throw notFound("Order not found");
   return {
     ...toDetail(order),
+    channel: order.channel,
     notes: order.notes,
     stockCommitted: order.stockCommitted,
     customer: order.user,
-    allowedTransitions: TRANSITIONS[order.status],
+    // Shop bills are only cancelled from the POS (it puts the cash right too).
+    allowedTransitions: order.channel === "POS" ? [] : TRANSITIONS[order.status],
   };
 }
 
@@ -230,7 +242,8 @@ export async function adminUpdateOrderStatus(id: string, input: UpdateOrderStatu
 export async function adminDashboard() {
   const [statusCounts, revenue, totalCustomers, totalProducts, publishedProducts, lowStock, recentOrders, recentCustomers] =
     await Promise.all([
-      prisma.order.groupBy({ by: ["status"], _count: true }),
+      // Fulfilment pipeline counts are for website orders; shop bills are handed over at the counter.
+      prisma.order.groupBy({ by: ["status"], where: { channel: "ONLINE" }, _count: true }),
       prisma.order.aggregate({ where: { status: { in: [...PAID_STATUSES] } }, _sum: { total: true } }),
       prisma.user.count({ where: { role: "CUSTOMER" } }),
       prisma.product.count(),
@@ -239,7 +252,7 @@ export async function adminDashboard() {
       prisma.order.findMany({
         orderBy: { createdAt: "desc" },
         take: 8,
-        select: { id: true, orderNumber: true, shippingName: true, shippingEmail: true, total: true, status: true, createdAt: true },
+        select: { id: true, orderNumber: true, channel: true, shippingName: true, shippingEmail: true, shippingPhone: true, total: true, status: true, createdAt: true },
       }),
       prisma.user.findMany({
         where: { role: "CUSTOMER" },
@@ -268,8 +281,9 @@ export async function adminDashboard() {
     recentOrders: recentOrders.map((o) => ({
       id: o.id,
       orderNumber: o.orderNumber,
+      channel: o.channel,
       customerName: o.shippingName,
-      customerEmail: o.shippingEmail,
+      customerEmail: o.shippingEmail || o.shippingPhone,
       total: toNumber(o.total),
       status: o.status,
       createdAt: o.createdAt.toISOString(),

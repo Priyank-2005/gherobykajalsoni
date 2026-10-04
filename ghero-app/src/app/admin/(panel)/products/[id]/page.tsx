@@ -8,6 +8,7 @@ import { adminListCategories } from "@/lib/services/category.service";
 import { Card, PageHeader, Pill } from "@/components/admin/ui";
 import { ProductForm } from "@/components/admin/product-form";
 import { VariantsEditor } from "@/components/admin/variants-editor";
+import { VariantBarcodes } from "@/components/admin/variant-barcodes";
 import { ProductMedia } from "@/components/admin/product-media";
 import { DeleteProduct } from "./delete-product";
 
@@ -84,6 +85,21 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               mrp: toNumber(v.mrp),
               stock: v.stock,
               isAvailable: v.isAvailable,
+            }))}
+          />
+        </Card>
+
+        <Card title="Barcodes & labels">
+          <VariantBarcodes
+            productId={product.id}
+            variants={product.variants.map((v) => ({
+              id: v.id,
+              sku: v.sku,
+              size: v.size,
+              color: v.color,
+              stock: v.stock,
+              barcode: v.barcode,
+              supplierCodes: v.supplierCodes.map((c) => ({ id: c.id, code: c.code })),
             }))}
           />
         </Card>

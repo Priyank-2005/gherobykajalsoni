@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { OrderStatus } from "@prisma/client";
+import type { OrderChannel, OrderStatus } from "@prisma/client";
 import { adminListOrders } from "@/lib/services/order.service";
 import { prisma } from "@/lib/db";
 import { FilterTabs, SearchInput, SelectFilter } from "@/components/admin/list-controls";
@@ -16,12 +16,13 @@ const SORTS = ["newest", "oldest", "total_desc", "total_asc"] as const;
 export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const status = STATUSES.includes(sp.status as OrderStatus) ? (sp.status as OrderStatus) : undefined;
+  const channel = sp.channel === "POS" || sp.channel === "ONLINE" ? (sp.channel as OrderChannel) : undefined;
   const sort = SORTS.includes(sp.sort as (typeof SORTS)[number]) ? (sp.sort as (typeof SORTS)[number]) : undefined;
   const page = Math.max(1, Number(sp.page) || 1);
 
   const [data, counts] = await Promise.all([
-    adminListOrders({ status, q: sp.q, sort, page, pageSize: 20 }),
-    prisma.order.groupBy({ by: ["status"], _count: true }),
+    adminListOrders({ status, channel, q: sp.q, sort, page, pageSize: 20 }),
+    prisma.order.groupBy({ by: ["status"], where: channel ? { channel } : {}, _count: true }),
   ]);
   const count = (s: OrderStatus) => counts.find((c) => c.status === s)?._count ?? 0;
 
@@ -45,7 +46,16 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
       />
 
       <div className="flex flex-wrap gap-3 mb-4">
-        <SearchInput placeholder="Search order no., name, email, phone" />
+        <SearchInput placeholder="Search order / bill no., name, email, phone" />
+        <SelectFilter
+          param="channel"
+          label="Where"
+          options={[
+            { value: "", label: "Website + shop" },
+            { value: "ONLINE", label: "Website orders" },
+            { value: "POS", label: "Shop bills" },
+          ]}
+        />
         <SelectFilter
           param="sort"
           label="Sort orders"
@@ -83,6 +93,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                 <Link href={`/admin/orders/${o.id}`} className="font-medium hover:text-wine">
                   {o.orderNumber}
                 </Link>
+                {o.channel === "POS" && <span className="ml-2"><Pill tone="gold">Shop</Pill></span>}
                 <div className="text-xs text-gray-400">{formatDateTime(o.createdAt)}</div>
               </td>
               <td className={td}>
