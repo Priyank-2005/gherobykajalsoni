@@ -63,6 +63,9 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               isPublished: product.isPublished,
               isNewArrival: product.isNewArrival,
               isBestseller: product.isBestseller,
+              isViral: product.isViral,
+              viralVideoUrl: product.viralVideoUrl ?? "",
+              viralVideoCloudinaryId: product.viralVideoCloudinaryId ?? "",
             }}
           />
         </Card>

@@ -7,13 +7,14 @@
 
 :root {
   /* Primary palette */
-  /* Client asked for a slightly darker pink (was #FFF0F5 / #FDE8EF / #F8D0DD) */
-  --color-baby-pink: #F7D6E0;
-  --color-baby-pink-light: #FBE1E9;
-  --color-baby-pink-deep: #EFBFCE;
+  /* Client asked twice for a darker pink, one shade each time
+     (originally #FFF0F5 / #FDE8EF / #F8D0DD, then #F7D6E0 / #FBE1E9 / #EFBFCE) */
+  --color-baby-pink: #F2C9D5;
+  --color-baby-pink-light: #F7D6E0;
+  --color-baby-pink-deep: #E8B1C2;
   --color-ivory: #FAF8F5;
-  --color-cream: #F7D6E0;
-  --color-blush: #EFBFCE;
+  --color-cream: #F2C9D5;
+  --color-blush: #E8B1C2;
   --color-rose: #D4A89A;
   --color-muted-rose: #C48B7C;
   --color-wine: #722F37;

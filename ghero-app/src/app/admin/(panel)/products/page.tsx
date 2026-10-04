@@ -89,6 +89,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                   {p.isPublished ? <Pill tone="green">Published</Pill> : <Pill>Draft</Pill>}
                   {p.isNewArrival && <Pill tone="gold">New</Pill>}
                   {p.isBestseller && <Pill tone="gold">Bestseller</Pill>}
+                  {p.isViral && <Pill tone="red">Viral</Pill>}
                 </div>
               </td>
             </tr>

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "@/lib/api";
-import { listFeaturedProducts } from "./product.service";
+import { BUDGET_PRICE_LIMIT } from "@/lib/constants";
+import { listFeaturedProducts, listProductsUnderPrice, listViralProducts } from "./product.service";
 import type {
   HeroInput,
   HomepageCategoryInput,
@@ -12,13 +13,15 @@ const visibleOrdered = { where: { isVisible: true }, orderBy: { displayOrder: "a
 
 /** Everything the storefront homepage renders, in one call. */
 export async function getHomepage() {
-  const [hero, categories, reels, testimonials, newArrivals, bestsellers] = await Promise.all([
+  const [hero, categories, reels, testimonials, newArrivals, bestsellers, viral, underPrice] = await Promise.all([
     prisma.homepageHero.findMany(visibleOrdered),
     prisma.homepageCategory.findMany({ ...visibleOrdered, where: { isVisible: true, OR: [{ categoryId: null }, { category: { isVisible: true } }] } }),
     prisma.homepageReel.findMany({ ...visibleOrdered, include: { product: { select: { slug: true, name: true } } } }),
     prisma.testimonial.findMany(visibleOrdered),
     listFeaturedProducts("new", 8),
     listFeaturedProducts("bestseller", 8),
+    listViralProducts(12),
+    listProductsUnderPrice(BUDGET_PRICE_LIMIT, 8),
   ]);
   return {
     hero: hero.map((h) => ({
@@ -51,6 +54,8 @@ export async function getHomepage() {
     })),
     newArrivals,
     bestsellers,
+    viral,
+    underPrice: { maxPrice: BUDGET_PRICE_LIMIT, products: underPrice },
   };
 }
 

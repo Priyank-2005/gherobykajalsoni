@@ -7,3 +7,9 @@ export const INDIAN_STATES = [
   "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand",
   "West Bengal",
 ] as const;
+
+/**
+ * Homepage "Under ₹…" section: products whose selling price is at or below this amount.
+ * Its "View All" opens /shop?maxPrice=<this>, so changing it here updates both.
+ */
+export const BUDGET_PRICE_LIMIT = 1499;

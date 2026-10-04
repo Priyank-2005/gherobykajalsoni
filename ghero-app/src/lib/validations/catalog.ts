@@ -25,6 +25,11 @@ export const productQuerySchema = z.object({
     .optional()
     .transform((v) => v === "1" || v === "true"),
   minDiscount: optionalNumber,
+  // Only products in the homepage "Viral Products" section.
+  viral: z
+    .string()
+    .optional()
+    .transform((v) => v === "1" || v === "true"),
   sort: z
     .enum(PRODUCT_SORT_OPTIONS.map((o) => o.value) as [string, ...string[]])
     .optional()

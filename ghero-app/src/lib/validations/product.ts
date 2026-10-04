@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mediaSrc } from "./common";
 
 /**
  * Product validation schemas for admin CRUD operations.
@@ -20,12 +21,22 @@ const productBase = z.object({
   baseMrp: z.number().positive("MRP must be positive"),
   isBestseller: z.boolean(),
   isNewArrival: z.boolean(),
+  isViral: z.boolean(),
+  // Influencer reel shown in the homepage "Viral Products" section (uploaded via /api/admin/media).
+  viralVideoUrl: mediaSrc.nullable(),
+  viralVideoCloudinaryId: z.string().min(1).nullable(),
   isPublished: z.boolean(),
 });
 
 const mrpNotBelowPrice = (d: { basePrice?: number; baseMrp?: number }) =>
   d.basePrice === undefined || d.baseMrp === undefined || d.baseMrp >= d.basePrice;
 const mrpMessage = { message: "MRP can't be lower than the selling price", path: ["baseMrp"] };
+
+/** Exported so product.service can re-check the merged state on partial updates. */
+export const VIRAL_VIDEO_REQUIRED = "Upload a video to mark this product as a viral product";
+const viralHasVideo = (d: { isViral?: boolean; viralVideoUrl?: string | null }) =>
+  d.isViral !== true || d.viralVideoUrl === undefined || Boolean(d.viralVideoUrl);
+const viralMessage = { message: VIRAL_VIDEO_REQUIRED, path: ["viralVideoUrl"] };
 
 export const createProductSchema = productBase
   .extend({
@@ -37,11 +48,18 @@ export const createProductSchema = productBase
     subcategoryId: productBase.shape.subcategoryId.optional(),
     isBestseller: z.boolean().default(false),
     isNewArrival: z.boolean().default(false),
+    isViral: z.boolean().default(false),
+    viralVideoUrl: productBase.shape.viralVideoUrl.optional(),
+    viralVideoCloudinaryId: productBase.shape.viralVideoCloudinaryId.optional(),
     isPublished: z.boolean().default(false),
   })
-  .refine(mrpNotBelowPrice, mrpMessage);
+  .refine(mrpNotBelowPrice, mrpMessage)
+  .refine((d) => !d.isViral || Boolean(d.viralVideoUrl), viralMessage);
 
-export const updateProductSchema = productBase.partial().refine(mrpNotBelowPrice, mrpMessage);
+export const updateProductSchema = productBase
+  .partial()
+  .refine(mrpNotBelowPrice, mrpMessage)
+  .refine(viralHasVideo, viralMessage);
 
 const variantBase = z.object({
   sku: z.string().trim().toUpperCase().min(1, "SKU is required").max(50),

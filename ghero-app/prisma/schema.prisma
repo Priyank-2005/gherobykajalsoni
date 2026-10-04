@@ -188,6 +188,11 @@ model Product {
   baseMrp          Decimal @db.Decimal(10, 2)
   isBestseller     Boolean @default(false)
   isNewArrival     Boolean @default(false)
+  // "Viral Products" homepage section: an influencer reel that links to this product.
+  // When isViral is true a viral video is required (enforced in product service).
+  isViral                Boolean @default(false)
+  viralVideoUrl          String?
+  viralVideoCloudinaryId String?
   isPublished      Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -206,6 +211,7 @@ model Product {
   @@index([isPublished])
   @@index([isBestseller])
   @@index([isNewArrival])
+  @@index([isViral])
   @@index([createdAt])
   @@index([basePrice])
 }

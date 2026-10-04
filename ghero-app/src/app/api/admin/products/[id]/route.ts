@@ -11,11 +11,16 @@ export const GET = adminRoute(async (_request: Request, ctx: Ctx) => {
   return ok({ product: await adminGetProduct(id) });
 });
 
-/** Partial update. Changing category without a subcategoryId clears the old subcategory. */
+/**
+ * Partial update. Changing category without a subcategoryId clears the old subcategory.
+ * A replaced or removed viral video is purged from Cloudinary.
+ */
 export const PUT = adminRoute(async (request: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(request, updateProductSchema);
-  return ok({ product: await updateProduct(id, input) });
+  const { product, staleMedia } = await updateProduct(id, input);
+  await deleteMedia(staleMedia);
+  return ok({ product });
 });
 
 /** Permanent delete (orders keep their snapshots). Prefer unpublishing to archive. */

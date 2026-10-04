@@ -57,6 +57,7 @@ export interface AdminProductListItem {
   isPublished: boolean;
   isBestseller: boolean;
   isNewArrival: boolean;
+  isViral: boolean;
   imageUrl: string | null;
   createdAt: string;
 }

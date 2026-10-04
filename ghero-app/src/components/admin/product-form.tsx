@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Field, Toggle, inputCls } from "./ui";
+import { MediaUpload } from "./media-upload";
 import { api, errorMessage, fieldErrors } from "@/lib/api-client";
 import { slugify } from "@/lib/utils";
 
@@ -24,6 +25,9 @@ export type ProductFormValues = {
   isPublished: boolean;
   isNewArrival: boolean;
   isBestseller: boolean;
+  isViral: boolean;
+  viralVideoUrl: string;
+  viralVideoCloudinaryId: string;
 };
 
 export const emptyProduct: ProductFormValues = {
@@ -40,6 +44,9 @@ export const emptyProduct: ProductFormValues = {
   isPublished: false,
   isNewArrival: false,
   isBestseller: false,
+  isViral: false,
+  viralVideoUrl: "",
+  viralVideoCloudinaryId: "",
 };
 
 /** Create (productId undefined) or edit product details. Category → subcategory is a dependent pair. */
@@ -55,6 +62,11 @@ export function ProductForm({ productId, initial, categories }: { productId?: st
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (v.isViral && !v.viralVideoUrl) {
+      setErrors({ viralVideoUrl: "A video is required for viral products." });
+      toast("Upload the viral video, or turn off \"Viral product\".", "error");
+      return;
+    }
     setBusy(true);
     setErrors({});
     const body = {
@@ -71,6 +83,9 @@ export function ProductForm({ productId, initial, categories }: { productId?: st
       isPublished: v.isPublished,
       isNewArrival: v.isNewArrival,
       isBestseller: v.isBestseller,
+      isViral: v.isViral,
+      viralVideoUrl: v.viralVideoUrl || null,
+      viralVideoCloudinaryId: v.viralVideoCloudinaryId || null,
     };
     try {
       if (productId) {
@@ -157,7 +172,50 @@ export function ProductForm({ productId, initial, categories }: { productId?: st
         <Toggle checked={v.isPublished} onChange={(x) => set("isPublished", x)} label="Published (visible in store)" />
         <Toggle checked={v.isNewArrival} onChange={(x) => set("isNewArrival", x)} label="New arrival" />
         <Toggle checked={v.isBestseller} onChange={(x) => set("isBestseller", x)} label="Bestseller" />
+        <Toggle checked={v.isViral} onChange={(x) => set("isViral", x)} label="Viral product" />
       </div>
+
+      {(v.isViral || v.viralVideoUrl) && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Viral video {v.isViral && <span className="text-red-600">*</span>}</h3>
+              <p className="text-xs text-gray-500 mt-0.5 max-w-md">
+                {v.isViral
+                  ? "The influencer reel shown in the homepage \"Viral Products\" section. Shoppers tap it to open this product. Vertical (9:16) MP4, WebM or MOV up to 100 MB."
+                  : "Kept for later, but not shown on the homepage while \"Viral product\" is off."}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <MediaUpload
+                kind="productVideo"
+                accept="video/mp4,video/webm,video/quicktime"
+                label={v.viralVideoUrl ? "Replace video" : "Upload video"}
+                onUploaded={(m) => {
+                  setV((prev) => ({ ...prev, viralVideoUrl: m.url, viralVideoCloudinaryId: m.cloudinaryId }));
+                  setErrors((prev) => ({ ...prev, viralVideoUrl: "" }));
+                }}
+              />
+              {v.viralVideoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setV((prev) => ({ ...prev, viralVideoUrl: "", viralVideoCloudinaryId: "" }))}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+          {v.viralVideoUrl ? (
+            <video src={v.viralVideoUrl} controls muted playsInline className="mt-3 w-40 aspect-[9/16] object-cover bg-black rounded" />
+          ) : (
+            <p className="mt-3 text-sm text-gray-500">No video uploaded yet.</p>
+          )}
+          {errors.viralVideoUrl && <p className="text-xs text-red-600 mt-2">{errors.viralVideoUrl}</p>}
+          {productId && <p className="text-xs text-gray-500 mt-2">Changes to the video are saved when you click &ldquo;Save product&rdquo;.</p>}
+        </div>
+      )}
 
       <Button type="submit" isLoading={busy} size="lg">
         {productId ? "Save product" : "Create product"}

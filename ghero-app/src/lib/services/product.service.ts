@@ -5,6 +5,7 @@ import { badRequest, conflict, notFound } from "@/lib/api";
 import { toNumber } from "@/lib/money";
 import { calculateDiscount, slugify } from "@/lib/utils";
 import type { ProductQuery } from "@/lib/validations/catalog";
+import { VIRAL_VIDEO_REQUIRED } from "@/lib/validations/product";
 import type {
   CreateProductInput,
   UpdateProductInput,
@@ -17,6 +18,7 @@ import type {
   ProductFacets,
   ProductListResponse,
   ProductSortOption,
+  ViralProductData,
 } from "@/types/product";
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -77,6 +79,7 @@ function scopeWhere(query: ProductQuery): Prisma.ProductWhereInput {
   if (query.category) and.push({ category: { slug: query.category, isVisible: true } });
   if (query.category && query.sub) and.push({ subcategory: { slug: query.sub } });
   if (query.q) and.push(searchWhere(query.q));
+  if (query.viral) and.push({ isViral: true, viralVideoUrl: { not: null } });
   return { AND: and };
 }
 
@@ -212,6 +215,28 @@ export async function listFeaturedProducts(kind: "new" | "bestseller", limit = 8
   const rows = await prisma.product.findMany({
     where: { isPublished: true, ...(kind === "new" ? { isNewArrival: true } : { isBestseller: true }) },
     orderBy: { createdAt: "desc" },
+    take: limit,
+    include: cardInclude,
+  });
+  return rows.map(toCard);
+}
+
+/** Products tagged viral that have their influencer reel uploaded, most recently edited first. */
+export async function listViralProducts(limit = 8): Promise<ViralProductData[]> {
+  const rows = await prisma.product.findMany({
+    where: { isPublished: true, isViral: true, viralVideoUrl: { not: null } },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+    include: cardInclude,
+  });
+  return rows.map((r) => ({ ...toCard(r), videoUrl: r.viralVideoUrl! }));
+}
+
+/** Products whose selling price is at or below `maxPrice` (same rule as the shop's maxPrice filter). */
+export async function listProductsUnderPrice(maxPrice: number, limit = 8) {
+  const rows = await prisma.product.findMany({
+    where: { isPublished: true, basePrice: { lte: maxPrice } },
+    orderBy: [{ isBestseller: "desc" }, { createdAt: "desc" }],
     take: limit,
     include: cardInclude,
   });
@@ -380,6 +405,7 @@ export async function adminListProducts(params: { q?: string; categoryId?: strin
       isPublished: p.isPublished,
       isBestseller: p.isBestseller,
       isNewArrival: p.isNewArrival,
+      isViral: p.isViral,
       imageUrl: p.images[0]?.url ?? null,
       createdAt: p.createdAt.toISOString(),
     })),
@@ -410,9 +436,26 @@ export async function createProduct(input: CreateProductInput) {
   return prisma.product.create({ data: { ...input, subcategoryId: input.subcategoryId ?? null, slug } });
 }
 
+/**
+ * Partial update. Returns the product plus Cloudinary ids that are no longer referenced
+ * (a replaced or removed viral video) so the caller can purge them.
+ */
 export async function updateProduct(id: string, input: UpdateProductInput) {
-  const existing = await prisma.product.findUnique({ where: { id }, select: { categoryId: true, subcategoryId: true } });
+  const existing = await prisma.product.findUnique({
+    where: { id },
+    select: { categoryId: true, subcategoryId: true, isViral: true, viralVideoUrl: true, viralVideoCloudinaryId: true },
+  });
   if (!existing) throw notFound("Product not found");
+
+  // A viral product must always have its video, whichever of the two fields this update touches.
+  const isViral = input.isViral ?? existing.isViral;
+  const viralVideoUrl = input.viralVideoUrl !== undefined ? input.viralVideoUrl : existing.viralVideoUrl;
+  if (isViral && !viralVideoUrl) throw badRequest(VIRAL_VIDEO_REQUIRED);
+  if (input.viralVideoUrl === null) input = { ...input, viralVideoCloudinaryId: null };
+  const staleMedia =
+    input.viralVideoUrl !== undefined && input.viralVideoUrl !== existing.viralVideoUrl && existing.viralVideoCloudinaryId
+      ? [existing.viralVideoCloudinaryId]
+      : [];
 
   const categoryId = input.categoryId ?? existing.categoryId;
   // Changing category without choosing a new subcategory clears the old (now mismatched) one.
@@ -428,18 +471,23 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
     const clash = await prisma.product.findFirst({ where: { slug: input.slug, id: { not: id } } });
     if (clash) throw conflict(`The slug "${input.slug}" is already used by another product`);
   }
-  return prisma.product.update({ where: { id }, data: { ...input, categoryId, subcategoryId } });
+  const product = await prisma.product.update({ where: { id }, data: { ...input, categoryId, subcategoryId } });
+  return { product, staleMedia };
 }
 
 /** Hard delete. Order history is unaffected (orders store snapshots). Returns media ids for cleanup. */
 export async function deleteProduct(id: string) {
   const media = await prisma.product.findUnique({
     where: { id },
-    select: { images: { select: { cloudinaryId: true } }, videos: { select: { cloudinaryId: true } } },
+    select: {
+      viralVideoCloudinaryId: true,
+      images: { select: { cloudinaryId: true } },
+      videos: { select: { cloudinaryId: true } },
+    },
   });
   if (!media) throw notFound("Product not found");
   await prisma.product.delete({ where: { id } });
-  return [...media.images, ...media.videos].map((m) => m.cloudinaryId);
+  return [...media.images, ...media.videos].map((m) => m.cloudinaryId).concat(media.viralVideoCloudinaryId ?? []);
 }
 
 export async function createVariant(productId: string, input: CreateVariantInput) {

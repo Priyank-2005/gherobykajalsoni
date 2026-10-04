@@ -31,6 +31,11 @@ export interface ProductCardData {
   inStock: boolean;
 }
 
+/** A card in the homepage "Viral Products" section: the product plus its influencer reel. */
+export interface ViralProductData extends ProductCardData {
+  videoUrl: string;
+}
+
 export interface ProductVariantInfo {
   id: string;
   sku: string;
