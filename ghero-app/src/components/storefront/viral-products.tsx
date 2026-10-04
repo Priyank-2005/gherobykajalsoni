@@ -5,11 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Flame, Volume2, VolumeX } from "lucide-react";
 import { PriceDisplay } from "@/components/ui/price-display";
 import type { ViralProductData } from "@/types/product";
-
-/** Cloudinary serves a frame of any video as an image when the extension is swapped to .jpg. */
-function posterFor(url: string) {
-  return url.includes("res.cloudinary.com/") && url.includes("/video/upload/") ? url.replace(/\.[a-z0-9]+$/i, ".jpg") : undefined;
-}
+import { announceSound, onOtherSound, videoPoster } from "@/lib/video";
 
 /** One reel: plays muted while on screen, pauses off screen so a long row doesn't play every video at once. */
 function ViralCard({ product }: { product: ViralProductData }) {
@@ -28,6 +24,9 @@ function ViralCard({ product }: { product: ViralProductData }) {
     return () => observer.disconnect();
   }, []);
 
+  // Another video turned its sound on: this one goes quiet.
+  useEffect(() => onOtherSound(product.id, () => setMuted(true)), [product.id]);
+
   return (
     <div className="snap-start shrink-0 w-[220px] md:w-[260px] flex flex-col">
       <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-baby-pink group">
@@ -35,7 +34,7 @@ function ViralCard({ product }: { product: ViralProductData }) {
           <video
             ref={video}
             src={product.videoUrl}
-            poster={posterFor(product.videoUrl)}
+            poster={videoPoster(product.videoUrl)}
             muted={muted}
             loop
             playsInline
@@ -52,7 +51,8 @@ function ViralCard({ product }: { product: ViralProductData }) {
         <button
           type="button"
           onClick={() => {
-            setMuted((m) => !m);
+            if (muted) announceSound(product.id);
+            setMuted(!muted);
             video.current?.play().catch(() => {});
           }}
           aria-label={muted ? "Unmute video" : "Mute video"}
