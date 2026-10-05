@@ -185,9 +185,17 @@ export async function dashboardPosCards() {
       FROM "OrderItem" oi JOIN "Order" o ON o.id = oi."orderId"
       WHERE o.channel = 'POS' AND o.status = 'DELIVERED' AND o."createdAt" >= ${weekStart}
       GROUP BY 1 ORDER BY qty DESC LIMIT 5`,
-    // Paid online but the stock was gone at capture (often sold in the shop meanwhile).
+    // Online payments that need a refund or a check: stock gone at capture (often sold in the
+    // shop meanwhile), paid after the order was cancelled, or the wrong amount captured.
     prisma.order.findMany({
-      where: { channel: "ONLINE", status: "PAID", stockCommitted: false, notes: { startsWith: "STOCK_CONFLICT" } },
+      where: {
+        channel: "ONLINE",
+        OR: [
+          { status: "PAID", stockCommitted: false, notes: { startsWith: "STOCK_CONFLICT" } },
+          { notes: { startsWith: "PAYMENT_AFTER_CLOSE" } },
+          { notes: { startsWith: "AMOUNT_MISMATCH" } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       take: 10,
       select: { id: true, orderNumber: true, shippingName: true, total: true, createdAt: true },

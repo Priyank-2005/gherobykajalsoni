@@ -276,7 +276,8 @@ export async function createBill(session: { staff: PosStaff }, input: CreateBill
 
       await commitStockForOrder(tx, order.id, { reason: "POS_SALE", userId: staff.id });
       if (quote.couponId) await tx.couponUsage.create({ data: { couponId: quote.couponId, userId: customer.id, orderId: order.id } });
-      return { billId: order.id, billNumber: number, emailTo: customer.email };
+      // The email typed at the counter wins (the customer just asked for the bill there).
+      return { billId: order.id, billNumber: number, emailTo: input.customer.email || customer.email };
     }));
   } catch (error) {
     // Two submits with the same key racing: the loser returns the winner's bill.

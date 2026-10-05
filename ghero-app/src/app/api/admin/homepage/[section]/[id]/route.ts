@@ -9,7 +9,9 @@ export const PUT = adminRoute(async (request: Request, ctx: Ctx) => {
   const { section, id } = await ctx.params;
   const { admin, updateSchema } = resolveSection(section);
   const input = await parseBody(request, updateSchema);
-  return ok({ item: await admin.update(id, input as never) });
+  const { item, stale } = await admin.update(id, input as never);
+  await deleteMedia(stale); // replaced image/video no longer used anywhere
+  return ok({ item });
 });
 
 export const DELETE = adminRoute(async (_request: Request, ctx: Ctx) => {

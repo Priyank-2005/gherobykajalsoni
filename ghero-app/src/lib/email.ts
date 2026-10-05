@@ -4,10 +4,11 @@ import nodemailer from "nodemailer";
  * Nodemailer transporter singleton for Google SMTP.
  * Used for all transactional emails: OTP, order confirmation, shipping, delivery.
  */
+const port = parseInt(process.env.SMTP_PORT || "587");
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false, // true for 465, false for other ports
+  port,
+  secure: port === 465, // 465 = TLS from the start; 587 upgrades with STARTTLS
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,

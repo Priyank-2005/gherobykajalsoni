@@ -47,9 +47,12 @@ export function PosShell({ user, idleMinutes, deviceName, children }: { user: Po
     const timer = setInterval(() => {
       if (Date.now() - lastActive.current > idleMinutes * 60_000) lock();
     }, 15_000);
+    // The server refused a request because the session is locked or expired.
+    window.addEventListener("ghero:pos-locked", lock);
     return () => {
       events.forEach((e) => window.removeEventListener(e, bump));
       clearInterval(timer);
+      window.removeEventListener("ghero:pos-locked", lock);
     };
   }, [idleMinutes, lock]);
 

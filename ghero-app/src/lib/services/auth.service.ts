@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { OTP_CONFIG, generateOTP, hashOTP, verifyOTP } from "@/lib/auth";
 import { badRequest, tooMany } from "@/lib/api";
 import { sendOtpEmail } from "./email.service";
+import { claimPhone } from "./phone.service";
 
 /**
  * Email OTP authentication.
@@ -115,16 +116,25 @@ export async function verifyOtpAndGetUser(
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing?.role === "ADMIN") throw badRequest("This is an admin account. Please sign in at /admin/login.", "ADMIN_ACCOUNT");
+  const phone = profile?.phone || null;
+
   if (existing) {
-    const fill: { name?: string; phone?: string } = {};
-    if (!existing.name && profile?.name) fill.name = profile.name;
-    if (!existing.phone && profile?.phone) fill.phone = profile.phone;
-    if (Object.keys(fill).length === 0) return { user: existing, isNewUser: false };
-    return { user: await prisma.user.update({ where: { id: existing.id }, data: fill }), isNewUser: false };
+    if (!existing.name && profile?.name) await prisma.user.update({ where: { id: existing.id }, data: { name: profile.name } });
+    // Best effort: a number already on another online account is simply not copied.
+    if (!existing.phone && phone) await prisma.$transaction((tx) => claimPhone(tx, existing.id, phone));
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: existing.id } });
+    return { user, isNewUser: false };
   }
 
+  // A shop customer (phone only, from an in-store bill) signing up online becomes this account,
+  // so their shop purchases show in their order history.
+  const shopCustomer = phone ? await prisma.user.findUnique({ where: { phone } }) : null;
+  if (shopCustomer && !shopCustomer.email && shopCustomer.role === "CUSTOMER") {
+    const user = await prisma.user.update({ where: { id: shopCustomer.id }, data: { email, name: shopCustomer.name ?? profile?.name ?? null } });
+    return { user, isNewUser: true };
+  }
   const user = await prisma.user.create({
-    data: { email, name: profile?.name || null, phone: profile?.phone || null },
+    data: { email, name: profile?.name || null, phone: shopCustomer ? null : phone },
   });
   return { user, isNewUser: true };
 }

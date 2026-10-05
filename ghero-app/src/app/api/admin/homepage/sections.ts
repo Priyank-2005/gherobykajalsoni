@@ -16,7 +16,7 @@ import {
 type SectionAdmin = {
   list(): Promise<unknown[]>;
   create(data: never): Promise<unknown>;
-  update(id: string, data: never): Promise<unknown>;
+  update(id: string, data: never): Promise<{ item: unknown; stale: string[] }>;
   remove(id: string): Promise<string[]>;
 };
 

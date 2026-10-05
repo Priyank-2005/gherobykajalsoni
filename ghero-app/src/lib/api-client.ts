@@ -26,6 +26,10 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     throw new ApiError(0, "Network error. Please check your connection and try again.");
   }
   const data = await res.json().catch(() => ({}));
+  // The POS locked itself on the server (idle / expired): let the POS screen go to the PIN pad.
+  if (res.status === 401 && data.code === "POS_LOCKED" && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("ghero:pos-locked"));
+  }
   if (!res.ok) {
     throw new ApiError(res.status, data.error ?? "Something went wrong. Please try again.", data.code, data.issues);
   }

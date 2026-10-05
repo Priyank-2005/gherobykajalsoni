@@ -29,7 +29,9 @@ export default async function OrderDetailsPage({
     throw e;
   });
 
-  const stepIndex = STEPS.indexOf(order.status);
+  const inStore = order.channel === "POS";
+  // Shop bills are handed over at the counter: no delivery tracker or shipping address.
+  const stepIndex = inStore ? -1 : STEPS.indexOf(order.status);
 
   return (
     <div>
@@ -52,7 +54,7 @@ export default async function OrderDetailsPage({
             Order {order.orderNumber}
             <span className={`px-3 py-1 rounded-full text-xs font-body ${ORDER_STATUS_COLORS[order.status]}`}>{ORDER_STATUS_LABELS[order.status]}</span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1">Placed on {formatDateTime(order.createdAt)}</p>
+          <p className="text-sm text-gray-500 mt-1">{inStore ? "Bought in our store on" : "Placed on"} {formatDateTime(order.createdAt)}</p>
         </div>
         {order.status === "PENDING_PAYMENT" && <PayNowButton orderId={order.id} total={order.total} />}
       </div>
@@ -130,10 +132,24 @@ export default async function OrderDetailsPage({
                   <dd>−{formatPrice(order.couponDiscount)}</dd>
                 </div>
               )}
-              <div className="flex justify-between text-gray-600">
-                <dt>Shipping</dt>
-                <dd>{order.shippingFee === 0 ? "Free" : formatPrice(order.shippingFee)}</dd>
-              </div>
+              {order.manualDiscount > 0 && (
+                <div className="flex justify-between text-wine">
+                  <dt>Discount</dt>
+                  <dd>−₹{order.manualDiscount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</dd>
+                </div>
+              )}
+              {order.roundOff !== 0 && (
+                <div className="flex justify-between text-gray-600">
+                  <dt>Round off</dt>
+                  <dd>{order.roundOff > 0 ? "+" : "−"}₹{Math.abs(order.roundOff).toFixed(2)}</dd>
+                </div>
+              )}
+              {!inStore && (
+                <div className="flex justify-between text-gray-600">
+                  <dt>Shipping</dt>
+                  <dd>{order.shippingFee === 0 ? "Free" : formatPrice(order.shippingFee)}</dd>
+                </div>
+              )}
             </dl>
             <div className="flex justify-between items-center border-t border-gold/20 pt-3">
               <span className="font-heading text-lg text-charcoal">Total</span>
@@ -142,9 +158,9 @@ export default async function OrderDetailsPage({
           </div>
 
           <div className="bg-white border border-gold/10 p-6">
-            <h3 className="font-heading text-xl text-charcoal mb-4 border-b border-gray-100 pb-2">Shipping To</h3>
+            <h3 className="font-heading text-xl text-charcoal mb-4 border-b border-gray-100 pb-2">{inStore ? "Bought at" : "Shipping To"}</h3>
             <address className="not-italic text-sm text-gray-600 space-y-1">
-              <p className="font-medium text-charcoal">{order.shipping.name}</p>
+              <p className="font-medium text-charcoal">{inStore ? "Ghero store" : order.shipping.name}</p>
               <p>
                 {order.shipping.address1}
                 {order.shipping.address2 && `, ${order.shipping.address2}`}
@@ -153,7 +169,7 @@ export default async function OrderDetailsPage({
               <p>
                 {order.shipping.city}, {order.shipping.state} {order.shipping.pincode}
               </p>
-              <p className="pt-2">Phone: {order.shipping.phone}</p>
+              {!inStore && <p className="pt-2">Phone: {order.shipping.phone}</p>}
             </address>
           </div>
 
@@ -161,6 +177,7 @@ export default async function OrderDetailsPage({
             <h3 className="font-heading text-xl text-charcoal mb-4 border-b border-gray-100 pb-2">Payment</h3>
             <p className="text-sm text-gray-600">
               {order.payment ? PAYMENT_STATUS_LABELS[order.payment.status] : PAYMENT_STATUS_LABELS.PENDING}
+              {inStore && order.status !== "CANCELLED" && " at the store"}
               {order.payment?.razorpayPaymentId && <span className="block text-xs text-gray-400 mt-1 font-mono">Ref {order.payment.razorpayPaymentId}</span>}
             </p>
           </div>

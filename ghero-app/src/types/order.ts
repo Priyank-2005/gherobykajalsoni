@@ -23,7 +23,12 @@ export interface OrderDetail {
   couponCode: string | null;
   couponDiscount: number;
   shippingFee: number;
+  /** Shop bills only: discounts given at the counter and rounding to the nearest rupee. */
+  manualDiscount: number;
+  roundOff: number;
   total: number;
+  /** ONLINE = website order; POS = bought in the shop (no shipping). */
+  channel: "ONLINE" | "POS";
   trackingUrl: string | null;
   createdAt: string;
   updatedAt: string;

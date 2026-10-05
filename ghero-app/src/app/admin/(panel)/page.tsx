@@ -23,9 +23,9 @@ export default async function AdminDashboardPage() {
       <PageHeader title="Dashboard" description="Overview of your store" />
 
       {pos.refundNeeded.length > 0 && (
-        <Card title="Paid online but out of stock: refund or restock needed" className="mb-4 border-red-300">
+        <Card title="Online payments that need a refund or a check" className="mb-4 border-red-300">
           <p className="text-sm text-gray-600 mb-3">
-            These customers paid after the last piece was sold (often in the shop at the same moment). Refund them in Razorpay, or restock and ship.
+            Paid after the last piece was sold (often in the shop at the same moment), paid after the order was cancelled, or paid a different amount. Open each order to see what happened, then refund in Razorpay or restock and ship.
           </p>
           <ul className="divide-y divide-gray-100 text-sm">
             {pos.refundNeeded.map((o) => (

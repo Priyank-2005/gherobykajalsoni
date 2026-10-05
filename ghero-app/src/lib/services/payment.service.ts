@@ -29,6 +29,9 @@ export async function createPaymentOrder(userId: string, orderId: string) {
   });
   if (!order) throw notFound("Order not found");
   if (order.status !== "PENDING_PAYMENT") throw badRequest("This order has already been paid or closed", "ORDER_NOT_PAYABLE");
+  // Money was already captured for this order (e.g. held for review after an amount mismatch):
+  // starting a new payment would overwrite that record.
+  if (order.payment?.status === "CAPTURED") throw badRequest("We've received a payment for this order and are checking it. We'll contact you shortly.", "PAYMENT_UNDER_REVIEW");
 
   // Fail fast if stock ran out since the order was placed (still re-checked atomically at capture).
   const short = order.items.find((i) => !i.variant || !i.variant.isAvailable || i.variant.stock < i.quantity);
@@ -90,6 +93,17 @@ export async function finalizeCapturedPayment(params: {
       },
     });
     if (flipped.count === 0) return { confirmed: false, alreadyProcessed: true };
+
+    // The order was closed (e.g. cancelled by the admin) while the customer was still paying:
+    // don't revive it. Keep the payment on record and flag it for a refund.
+    const current = await tx.order.findUnique({ where: { id: order.id }, select: { status: true } });
+    if (current?.status !== "PENDING_PAYMENT") {
+      await tx.order.update({
+        where: { id: order.id },
+        data: { notes: `PAYMENT_AFTER_CLOSE: ${params.amountPaise} paise captured after the order was ${current?.status?.toLowerCase() ?? "closed"}. Refund the customer.` },
+      });
+      return { confirmed: false, alreadyProcessed: false };
+    }
 
     if (!amountMatches) {
       // Money arrived but not the amount we asked for: keep the order pending for manual review/refund.
